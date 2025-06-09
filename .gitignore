@@ -1,9 +1,18 @@
-# Python
+#python
 venv/
 __pycache__/
 *.pyc
 
-# Node
+#node
 node_modules/
 build/
 .env
+
+#chromadb
+chromadb/*.bin
+chromadb/*.sqlite3
+backend/app/chromadb/9dcc1f4f-3062-4adf-8145-e01e5e1d797d/link_lists.bin
+backend/app/chromadb/9dcc1f4f-3062-4adf-8145-e01e5e1d797d/length.bin
+backend/app/chromadb/9dcc1f4f-3062-4adf-8145-e01e5e1d797d/header.bin
+backend/app/chromadb/9dcc1f4f-3062-4adf-8145-e01e5e1d797d/data_level0.bin
+backend/app/chromadb/chroma.sqlite3

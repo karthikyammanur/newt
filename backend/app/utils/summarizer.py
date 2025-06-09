@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
-from .retriever import ingest_articles, retrieve_relevant_articles
+from backend.app.utils.retriever import ingest_articles, retrieve_relevant_articles
+from backend.app.utils.news_fetcher import fetch_articles
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -17,6 +18,7 @@ def summarize_topic(topic: str, top_k: int = 3) -> str:
 
     for i, d in enumerate(docs):
         prompt += (
+
             f"Article {i+1}:\n"
             f"Title: {d['title']}\n"
             f"Content: {d['content']}\n\n"
@@ -27,11 +29,13 @@ def summarize_topic(topic: str, top_k: int = 3) -> str:
     return response.text.strip()
 
 if __name__ == "__main__":
-    sample_articles = [
-        {"id": "1", "title": "News A", "content": "Some content about A."},
-        {"id": "2", "title": "News B", "content": "Some content about B."},
-        {"id": "3", "title": "News C", "content": "Some content about C."}
-    ]
+    topic = "US presidential election"
+    articles = fetch_articles(topic, max_articles=5)
 
-    ingest_articles(sample_articles)
-    print(summarize_topic("News A", top_k=2))
+    if not articles:
+        print("No articles found.")
+    else:
+        ingest_articles(articles)
+        summary = summarize_topic(topic, top_k=3)
+        print("Summary:\n", summary)
+

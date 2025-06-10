@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from backend.app.utils.retriever import ingest_articles, retrieve_relevant_articles
 from backend.app.utils.news_fetcher import fetch_articles
+from backend.app.db.likes_db import init_db, like_topic, get_liked_topics
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -29,6 +30,12 @@ def summarize_topic(topic: str, top_k: int = 3) -> str:
     return response.text.strip()
 
 if __name__ == "__main__":
+    from backend.app.utils.news_fetcher import fetch_articles
+    from backend.app.db.likes_db import init_db, like_topic, get_liked_topics
+
+
+    init_db()
+
     topic = "US presidential election"
     articles = fetch_articles(topic, max_articles=5)
 
@@ -37,5 +44,9 @@ if __name__ == "__main__":
     else:
         ingest_articles(articles)
         summary = summarize_topic(topic, top_k=3)
-        print("Summary:\n", summary)
+        print("📰 Summary:\n", summary)
+
+        like_topic(topic)
+        print(f"Liked topic: {topic}")
+        print("Your liked topics:", get_liked_topics())
 

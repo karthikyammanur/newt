@@ -1,30 +1,36 @@
 import sqlite3
 import os
+import numpy as np
+from backend.app.utils.embedder import get_embedding
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "likes.sqlite3")
+db_path = os.path.join(os.path.dirname(__file__), "likes.db")
 
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS likes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            topic TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        """)
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS likes (
+                        topic TEXT PRIMARY KEY,
+                        embedding BLOB
+                    )''')
         conn.commit()
 
-#add a liked topic
 def like_topic(topic: str):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO likes (topic) VALUES (?);", (topic,))
+    embedding = get_embedding(topic)
+    embedding_blob = np.array(embedding, dtype=np.float32).tobytes()
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO likes (topic, embedding) VALUES (?, ?)", (topic, embedding_blob))
         conn.commit()
 
-#get all liked topics
 def get_liked_topics():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT topic FROM likes;")
-        return [row[0] for row in cursor.fetchall()]
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        c.execute("SELECT topic FROM likes")
+        return [row[0] for row in c.fetchall()]
+
+def get_liked_embeddings():
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        c.execute("SELECT topic, embedding FROM likes")
+        data = c.fetchall()
+        return [(topic, np.frombuffer(blob, dtype=np.float32)) for topic, blob in data]

@@ -3,22 +3,24 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from app.utils.retriever import ingest_articles, retrieve_relevant_articles
 from app.utils.news_fetcher import fetch_articles
+import re
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def summarize_topic(topic: str, top_k: int = 3) -> str:
-    docs = retrieve_relevant_articles(topic, top_k)
+def summarize_topic(topic: str, top_k: int = 3, articles: list = None) -> str:
+    #if articles are provided, use them; otherwise, retrieve relevant ones
+    docs = articles if articles is not None else retrieve_relevant_articles(topic, top_k)
+    if not docs:
+        return None
 
     prompt = (
         "You are a tech-focused news analyst and summarizer.\n"
-        f"Provide a comprehensive summary of the following {len(docs)} articles about \"{topic}\". "
-        "Focus on:\n"
-        "- Key technological developments and innovations\n"
-        "- Technical details and specifications when relevant\n"
-        "- Impact on the tech industry and developers\n"
-        "- Future implications and potential developments\n\n"
-        "Present the information in a clear, technical yet accessible style.\n\n"
+        f"Summarize the following {len(docs)} articles about '{topic}' in 1-2 short, well-structured paragraphs. "
+        "Do NOT use bullet points, lists, or headings.\n"
+        "Write in clear, plain English.\n"
+        "At the end, add a line: Sources: <comma-separated article titles>.\n"
+        "Do not use markdown formatting (no *, **, or _).\n\n"
     )
 
     for i, d in enumerate(docs):
@@ -30,7 +32,11 @@ def summarize_topic(topic: str, top_k: int = 3) -> str:
 
     model = genai.GenerativeModel("models/gemini-1.5-pro-latest")
     response = model.generate_content(prompt)
-    return response.text.strip()
+    summary = response.text.strip()
+
+    #remove markdown bold/italic for plain text rendering
+    summary = re.sub(r'[\*_]{1,2}', '', summary)
+    return summary
 
 if __name__ == "__main__":
     topic = "artificial intelligence"
@@ -40,5 +46,5 @@ if __name__ == "__main__":
         print("No tech articles found.")
     else:
         ingest_articles(articles)
-        summary = summarize_topic(topic)
+        summary = summarize_topic(topic, articles=articles)
         print("Tech News Summary:\n", summary)

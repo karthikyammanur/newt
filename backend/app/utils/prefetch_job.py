@@ -18,7 +18,10 @@ def prefetch_and_cache():
         if not articles:
             print(f"No articles for {topic}")
             continue
-        summary = summarize_topic(topic)
+        summary = summarize_topic(topic, articles=articles)
+        if not summary:
+            print(f"No summary generated for {topic}")
+            continue
         embedding = get_embedding(summary)
         save_summary(topic, summary, embedding, articles)
         print(f"Cached summary for {topic} at {datetime.utcnow()}")

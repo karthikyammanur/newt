@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import numpy as np
-from backend.app.utils.embedder import get_embedding
+from app.utils.embedder import get_embedding
 
 db_path = os.path.join(os.path.dirname(__file__), "likes.db")
 

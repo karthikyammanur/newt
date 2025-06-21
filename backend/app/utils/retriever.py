@@ -1,7 +1,7 @@
 try:
     from .vectorstore import add_articles, search_articles
 except ImportError:
-    from vectorstore import add_articles, search_articles
+    from app.utils.vectorstore import add_articles, search_articles
 
 def ingest_articles(articles: list[dict]):
     """

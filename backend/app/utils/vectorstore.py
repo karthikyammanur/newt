@@ -4,7 +4,7 @@ import chromadb
 try:
     from .embedder import get_embedding
 except ImportError:
-    from embedder import get_embedding
+    from app.utils.embedder import get_embedding
 
 client = chromadb.PersistentClient(path="chromadb")
 

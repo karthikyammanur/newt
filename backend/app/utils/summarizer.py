@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
-from backend.app.utils.retriever import ingest_articles, retrieve_relevant_articles
-from backend.app.utils.news_fetcher import fetch_articles
+from app.utils.retriever import ingest_articles, retrieve_relevant_articles
+from app.utils.news_fetcher import fetch_articles
 
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))

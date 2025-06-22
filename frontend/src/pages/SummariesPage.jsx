@@ -22,6 +22,7 @@ const fetchSummaries = async (token) => {
 const SummariesPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [likedIds, setLikedIds] = useState([]);
   const { user } = useAuth();
   
   const { data: summaries, isLoading, error } = useQuery({
@@ -31,6 +32,40 @@ const SummariesPage = () => {
     retry: 1,
     enabled: !!localStorage.getItem('token')
   });
+
+  // Fetch liked article IDs on mount
+  useEffect(() => {
+    const fetchLikes = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('http://localhost:8000/api/likes', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLikedIds(data.liked || []);
+      }
+    };
+    fetchLikes();
+  }, []);
+
+  const handleLike = async (articleId) => {
+    setLikedIds((prev) => [...prev, articleId]);
+    const token = localStorage.getItem('token');
+    await fetch(`http://localhost:8000/api/like/${articleId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+  };
+
+  const handleUnlike = async (articleId) => {
+    setLikedIds((prev) => prev.filter((id) => id !== articleId));
+    const token = localStorage.getItem('token');
+    await fetch(`http://localhost:8000/api/unlike/${articleId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+  };
 
   const handlePrevious = () => {
     setDirection(-1);
@@ -89,6 +124,7 @@ const SummariesPage = () => {
   );
 
   const currentSummary = summaries[currentIndex];
+  const articleId = currentSummary.id || currentSummary.topic; // fallback to topic if no id
 
   return (
     <Layout>
@@ -107,6 +143,9 @@ const SummariesPage = () => {
                 topic={currentSummary.topic}
                 summary={currentSummary.summary}
                 timestamp={currentSummary.timestamp}
+                isLiked={likedIds.includes(articleId)}
+                onLike={() => handleLike(articleId)}
+                onUnlike={() => handleUnlike(articleId)}
               />
             </motion.div>
           </AnimatePresence>

@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HeartIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
-const NewsCard = ({ topic, summary, timestamp }) => {
+const NewsCard = ({ topic, summary, timestamp, isLiked, onLike, onUnlike }) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
 
   const handleShare = async () => {
     try {
@@ -17,8 +16,12 @@ const NewsCard = ({ topic, summary, timestamp }) => {
     }
   };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
+  const handleLikeClick = () => {
+    if (isLiked) {
+      onUnlike && onUnlike();
+    } else {
+      onLike && onLike();
+    }
   };
 
   const formatDate = (dateString) => {
@@ -66,7 +69,7 @@ const NewsCard = ({ topic, summary, timestamp }) => {
             <ShareIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </button>
           <button
-            onClick={handleLike}
+            onClick={handleLikeClick}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label={isLiked ? 'Unlike summary' : 'Like summary'}
           >

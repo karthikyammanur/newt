@@ -11,6 +11,7 @@ from app.core.auth import (
 from app.db.database import get_db, User
 from app.db.mongodb import get_recent_summaries
 from app.utils.personalized_feed import get_personalized_feed
+from app.db.likes_db import like_article, unlike_article, get_liked_articles
 from datetime import timedelta, datetime
 import random
 from jose import jwt as jose_jwt
@@ -100,3 +101,33 @@ async def get_summaries(token: str = Depends(oauth2_scheme)):
         }
         for s in recent
     ]
+
+@router.post("/like/{article_id}")
+async def like(article_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    like_article(user_id, article_id)
+    return {"status": "liked", "article_id": article_id}
+
+@router.post("/unlike/{article_id}")
+async def unlike(article_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    unlike_article(user_id, article_id)
+    return {"status": "unliked", "article_id": article_id}
+
+@router.get("/likes")
+async def get_likes(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    liked = get_liked_articles(user_id)
+    return {"liked": liked}

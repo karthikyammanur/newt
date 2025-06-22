@@ -9,28 +9,26 @@ def init_db():
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS likes (
-                        topic TEXT PRIMARY KEY,
-                        embedding BLOB
+                        user_id TEXT,
+                        article_id TEXT,
+                        PRIMARY KEY (user_id, article_id)
                     )''')
         conn.commit()
 
-def like_topic(topic: str):
-    embedding = get_embedding(topic)
-    embedding_blob = np.array(embedding, dtype=np.float32).tobytes()
+def like_article(user_id: str, article_id: str):
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
-        c.execute("INSERT OR REPLACE INTO likes (topic, embedding) VALUES (?, ?)", (topic, embedding_blob))
+        c.execute("INSERT OR IGNORE INTO likes (user_id, article_id) VALUES (?, ?)", (user_id, article_id))
         conn.commit()
 
-def get_liked_topics():
+def unlike_article(user_id: str, article_id: str):
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
-        c.execute("SELECT topic FROM likes")
-        return [row[0] for row in c.fetchall()]
+        c.execute("DELETE FROM likes WHERE user_id = ? AND article_id = ?", (user_id, article_id))
+        conn.commit()
 
-def get_liked_embeddings():
+def get_liked_articles(user_id: str):
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
-        c.execute("SELECT topic, embedding FROM likes")
-        data = c.fetchall()
-        return [(topic, np.frombuffer(blob, dtype=np.float32)) for topic, blob in data]
+        c.execute("SELECT article_id FROM likes WHERE user_id = ?", (user_id,))
+        return [row[0] for row in c.fetchall()]

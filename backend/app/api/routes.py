@@ -9,16 +9,19 @@ from app.core.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
 from app.db.database import get_db, User
-from app.db.mongodb import get_recent_summaries
+from app.db.mongodb import db
 from app.utils.personalized_feed import get_personalized_feed
 from app.db.likes_db import like_article, unlike_article, get_liked_articles
 from datetime import timedelta, datetime
 import random
 from jose import jwt as jose_jwt
 from typing import Optional
+from bson import ObjectId
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+summaries_collection = db['summaries']
 
 @router.get("/health")
 async def health_check():
@@ -103,7 +106,6 @@ async def get_summaries(
             ]
 
     # Public summaries (optionally filtered by topic)
-    from app.db.mongodb import summaries_collection
     query = {}
     if topic:
         query["topic"] = topic
@@ -115,6 +117,25 @@ async def get_summaries(
             "timestamp": s["date"].isoformat() if s.get("date") else None
         }
         for s in recent
+    ]
+
+@router.get("/past_summaries")
+async def get_past_summaries(topic: str = None):
+    query = {}
+    if topic:
+        query["topic"] = topic
+    # Return all summaries for the topic, sorted by date descending
+    past = list(summaries_collection.find(query).sort("date", -1))
+    return [
+        {
+            "_id": str(s.get("_id")),
+            "topic": s.get("topic"),
+            "summary": s.get("summary"),
+            "timestamp": s.get("date").isoformat() if s.get("date") else None,
+            "title": s.get("title", ""),
+            "sources": s.get("sources", [])
+        }
+        for s in past
     ]
 
 @router.post("/like/{article_id}")

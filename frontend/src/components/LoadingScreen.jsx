@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const LoadingScreen = () => {
+const LoadingSpinner = () => {
   return (
     <motion.div 
       className="fixed inset-0 bg-black flex items-center justify-center"
@@ -9,20 +9,18 @@ const LoadingScreen = () => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <motion.h1 
-        className="text-6xl font-bold text-white"
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+      <motion.div 
+        className="loader"
+        initial={{ rotate: 0 }}
+        animate={{ rotate: 360 }}
         transition={{ 
-          duration: 0.5,
-          type: "spring",
-          stiffness: 200
+          duration: 1,
+          ease: "linear",
+          repeat: Infinity
         }}
-      >
-        NEWT
-      </motion.h1>
+      />
     </motion.div>
   );
 };
 
-export default LoadingScreen;
+export default LoadingSpinner;

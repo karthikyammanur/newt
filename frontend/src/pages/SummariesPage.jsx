@@ -4,91 +4,57 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import NewsCard from '../components/NewsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
+import { mockSummaries } from '../data/mockSummaries';
 
 const topics = [
   { id: 1, title: 'machine learning' },
   { id: 2, title: 'semiconductors' },
   { id: 3, title: 'startups' },
   { id: 4, title: 'programming languages' },
-  { id: 5, title: 'web development' }
+  { id: 5, title: 'web development' },
+  { id: 6, title: 'artificial intelligence' },
+  { id: 7, title: 'software engineering' },
+  { id: 8, title: 'cloud computing' },
+  { id: 9, title: 'cybersecurity' },
+  { id: 10, title: 'data science' }
 ];
 
-const fetchSummaries = async (token, selectedTopic) => {
-  const response = await fetch(`http://localhost:8000/api/summaries?topic=${encodeURIComponent(selectedTopic)}`, {
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch summaries');
-  }
-  return response.json();
-};
-
 const SummariesPage = () => {
-  const [selectedTopic, setSelectedTopic] = useState(topics[0].title);
+  const location = useLocation();
+  // Read topic from query param if present
+  const urlParams = new URLSearchParams(location.search);
+  const initialTopic = urlParams.get('topic') || topics[0].title;
+  const [selectedTopic, setSelectedTopic] = useState(initialTopic);
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [likedIds, setLikedIds] = useState([]);
-  const { user } = useAuth();
 
   // Fetch summaries for selected topic
   useEffect(() => {
     setIsLoading(true);
     setError(null);
     setCurrentIndex(0);
-    const token = localStorage.getItem('token');
-    fetchSummaries(token, selectedTopic)
+    fetch(`http://localhost:8000/api/summaries?topic=${encodeURIComponent(selectedTopic)}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch summaries');
+        return res.json();
+      })
       .then(data => setSummaries(data))
-      .catch(err => setError(err))
+      .catch(err => {
+        console.log('Using cached mock data due to fetch error:', err);
+        // Use mock data when API fails
+        if (mockSummaries[selectedTopic]) {
+          setSummaries(mockSummaries[selectedTopic]);
+          setError(null);
+        } else {
+          setError(err);
+        }
+      })
       .finally(() => setIsLoading(false));
   }, [selectedTopic]);
-
-  // Fetch liked article IDs on mount
-  useEffect(() => {
-    const fetchLikes = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const res = await fetch('http://localhost:8000/api/likes', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setLikedIds(data.liked || []);
-        } else {
-          setLikedIds([]);
-        }
-      } catch (err) {
-        setLikedIds([]);
-      }
-    };
-    fetchLikes();
-  }, []);
-
-  const handleLike = async (articleId) => {
-    setLikedIds((prev) => [...prev, articleId]);
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/api/like/${articleId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (err) {}
-  };
-
-  const handleUnlike = async (articleId) => {
-    setLikedIds((prev) => prev.filter((id) => id !== articleId));
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/api/unlike/${articleId}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (err) {}
-  };
 
   const handlePrevious = () => {
     setDirection(-1);
@@ -174,9 +140,8 @@ const SummariesPage = () => {
                     topic={summaries[currentIndex].topic}
                     summary={summaries[currentIndex].summary}
                     timestamp={summaries[currentIndex].timestamp}
-                    isLiked={likedIds.includes(summaries[currentIndex].id || summaries[currentIndex].topic)}
-                    onLike={() => handleLike(summaries[currentIndex].id || summaries[currentIndex].topic)}
-                    onUnlike={() => handleUnlike(summaries[currentIndex].id || summaries[currentIndex].topic)}
+                    title={summaries[currentIndex].title}
+                    sources={summaries[currentIndex].sources}
                   />
                 </motion.div>
               </AnimatePresence>

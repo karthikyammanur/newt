@@ -11,10 +11,12 @@ db = client.get_default_database()
 summaries_collection = db['summaries']
 
 
-def save_summary(topic: str, summary: str, embedding: list, articles: list):
+def save_summary(topic: str, summary: dict, embedding: list, articles: list):
     doc = {
         "topic": topic,
-        "summary": summary,
+        "summary": summary.get("summary", ""),
+        "title": summary.get("title", topic.title()),
+        "sources": summary.get("sources", []),
         "embedding": embedding,
         "articles": articles,
         "date": datetime.utcnow()

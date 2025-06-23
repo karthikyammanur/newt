@@ -12,7 +12,7 @@ const fetchNews = async () => {
   return response.json();
 };
 
-const HomePage = () => {
+const SummariesPage = () => {
   const { data: news, isLoading, error } = useQuery({
     queryKey: ['news'],
     queryFn: fetchNews,
@@ -51,4 +51,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default SummariesPage;

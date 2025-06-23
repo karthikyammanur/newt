@@ -3,8 +3,13 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-gray-50 dark:bg-dark-bg;
+  html, body {
+    @apply bg-gray-950 text-blue-100;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
   }
 }
 
@@ -12,10 +17,45 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
   
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Full screen landing page */
+.full-screen-landing {
+  min-height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+}
+
+/* Improve carousel performance with hardware acceleration */
+.topic-card {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+/* Responsive carousel adjustments */
+@media (max-width: 768px) {
+  .topic-card {
+    flex: 0 0 calc(100% - 24px) !important; /* Show 1 card on small screens */
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .topic-card {
+    flex: 0 0 calc(50% - 24px) !important; /* Show 2 cards on medium screens */
   }
 }
 

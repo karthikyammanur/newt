@@ -6,10 +6,15 @@ from datetime import datetime
 
 TOPICS = [
     'machine learning',
-    'startups',
     'semiconductors',
-    'hardware',
-    'web development'
+    'startups',
+    'programming languages',
+    'web development',
+    'artificial intelligence',
+    'software engineering',
+    'cloud computing',
+    'cybersecurity',
+    'data science'
 ]
 
 def prefetch_and_cache():
@@ -23,6 +28,7 @@ def prefetch_and_cache():
             print(f"No summary generated for {topic}")
             continue
         embedding = get_embedding(summary)
+        # Save summary as dict with title, summary, sources
         save_summary(topic, summary, embedding, articles)
         print(f"Cached summary for {topic} at {datetime.utcnow()}")
 

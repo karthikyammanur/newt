@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HeartIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
-const NewsCard = ({ topic, summary, timestamp, isLiked, onLike, onUnlike }) => {
+const NewsCard = ({ topic, summary, timestamp, isLiked, onLike = () => {}, onUnlike = () => {}, hideSummary = false }) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleShare = async () => {
     try {
@@ -12,15 +13,23 @@ const NewsCard = ({ topic, summary, timestamp, isLiked, onLike, onUnlike }) => {
       setShowCopiedToast(true);
       setTimeout(() => setShowCopiedToast(false), 2000);
     } catch (err) {
+      setErrorMessage('Failed to copy to clipboard.');
+      setTimeout(() => setErrorMessage(""), 2500);
       console.error('Failed to copy to clipboard:', err);
     }
   };
 
   const handleLikeClick = () => {
-    if (isLiked) {
-      onUnlike && onUnlike();
-    } else {
-      onLike && onLike();
+    try {
+      if (isLiked) {
+        onUnlike();
+      } else {
+        onLike();
+      }
+    } catch (err) {
+      setErrorMessage('Failed to update like. Please try again.');
+      setTimeout(() => setErrorMessage(""), 2500);
+      console.error('Like/unlike error:', err);
     }
   };
 
@@ -44,6 +53,20 @@ const NewsCard = ({ topic, summary, timestamp, isLiked, onLike, onUnlike }) => {
       transition={{ duration: 0.3 }}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all relative p-6"
     >
+      {/* Error Toast Notification */}
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+          >
+            {errorMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col h-full">
         <div className="mb-4">
           <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 text-sm font-medium rounded-full mb-3">
@@ -54,11 +77,13 @@ const NewsCard = ({ topic, summary, timestamp, isLiked, onLike, onUnlike }) => {
           </div>
         </div>
 
-        <div className="prose dark:prose-invert max-w-none mb-6">
-          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-            {summary}
+        {!hideSummary && (
+          <div className="prose dark:prose-invert max-w-none mb-6">
+            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              {summary}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex justify-end items-center mt-auto gap-4">
           <button

@@ -17,10 +17,11 @@ def summarize_topic(topic: str, top_k: int = 3, articles: list = None) -> str:
     prompt = (
         "You are a tech-focused news analyst and summarizer.\n"
         f"Summarize the following {len(docs)} articles about '{topic}' in 1-2 short, well-structured paragraphs. "
-        "Do NOT use bullet points, lists, or headings.\n"
-        "Write in clear, plain English.\n"
+        "Do NOT use bullet points, lists, or headings. Do NOT use markdown, bold, italics, or any formatting.\n"
+        "Write in clear, plain English, as a single block of text.\n"
+        "Do not repeat yourself. Do not add extra commentary.\n"
         "At the end, add a line: Sources: <comma-separated article titles>.\n"
-        "Do not use markdown formatting (no *, **, or _).\n\n"
+        "Return only the summary and sources, nothing else.\n\n"
     )
 
     for i, d in enumerate(docs):
@@ -34,8 +35,12 @@ def summarize_topic(topic: str, top_k: int = 3, articles: list = None) -> str:
     response = model.generate_content(prompt)
     summary = response.text.strip()
 
-    #remove markdown bold/italic for plain text rendering
-    summary = re.sub(r'[\*_]{1,2}', '', summary)
+    summary = re.sub(r'([\*_\-`#>]|\n\s*\n|\n\s*\*|\n\s*\d+\.|\n\s*\-|\n\s*\+)', ' ', summary)
+    summary = re.sub(r'\s+', ' ', summary).strip()
+    summary = re.sub(r'(\*\*|__|\*|_|`|#|\-|\+|\d+\.|\n)', ' ', summary)
+    summary = re.sub(r'\s*Sources:', '\nSources:', summary)
+    if summary.lower().startswith('while no articles were provided'):
+        summary = ''
     return summary
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.utils.summarizer import summarize_topic
@@ -15,6 +15,7 @@ from app.db.likes_db import like_article, unlike_article, get_liked_articles
 from datetime import timedelta, datetime
 import random
 from jose import jwt as jose_jwt
+from typing import Optional
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -73,13 +74,22 @@ async def summarize(request: Request):
     return {"summary": summary}
 
 @router.get("/summaries")
-async def get_summaries(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-    except Exception:
-        user_id = None
+async def get_summaries(
+    token: Optional[str] = Header(None, alias="Authorization"),
+    topic: Optional[str] = None
+):
+    user_id = None
+    if token:
+        # Remove 'Bearer ' prefix if present
+        if token.lower().startswith('bearer '):
+            token = token[7:]
+        try:
+            payload = jose_jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+        except Exception:
+            user_id = None
 
+    # Personalized feed if user is authenticated
     if user_id:
         summaries = get_personalized_feed(user_id)
         if summaries:
@@ -92,7 +102,12 @@ async def get_summaries(token: str = Depends(oauth2_scheme)):
                 for s in summaries
             ]
 
-    recent = get_recent_summaries(limit=5)
+    # Public summaries (optionally filtered by topic)
+    from app.db.mongodb import summaries_collection
+    query = {}
+    if topic:
+        query["topic"] = topic
+    recent = list(summaries_collection.find(query).sort("date", -1).limit(5))
     return [
         {
             "topic": s["topic"],

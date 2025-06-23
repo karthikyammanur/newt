@@ -36,8 +36,7 @@ const SummariesPage = () => {
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    setCurrentIndex(0);
-    fetch(`http://localhost:8000/api/summaries?topic=${encodeURIComponent(selectedTopic)}`)
+    setCurrentIndex(0);    fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/summaries?topic=${encodeURIComponent(selectedTopic)}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch summaries');
         return res.json();

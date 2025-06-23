@@ -27,6 +27,17 @@ summaries_collection = db['summaries']
 async def health_check():
     return {"status": "ok"}
 
+@router.get("/health/mongodb")
+def mongodb_health_check():
+    from app.db.mongodb import get_mongo_client
+    try:
+        client = get_mongo_client()
+        # The 'ping' command is the most basic way to check connection
+        client.admin.command('ping')
+        return {"mongodb": "connected"}
+    except Exception as e:
+        return {"mongodb": "error", "detail": str(e)}
+
 @router.post("/auth/register", response_model=Token)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()

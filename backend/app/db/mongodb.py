@@ -37,3 +37,6 @@ def get_similar_summaries(embedding: list, limit: int = 3):
     scored = [(cosine(embedding, s["embedding"]), s) for s in all_summaries if s.get("embedding")]
     scored.sort(reverse=True, key=lambda x: x[0])
     return [s for _, s in scored[:limit]]
+
+def get_mongo_client():
+    return client

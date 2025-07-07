@@ -58,6 +58,7 @@ if __name__ == "__main__":
 
     if not articles:
         print("No tech articles found.")
+        print(articles)
     else:
         ingest_articles(articles)
         summary = summarize_topic(topic, articles=articles)

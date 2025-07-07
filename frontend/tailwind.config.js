@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./index.html",
   ],
   darkMode: 'class',
   theme: {
@@ -20,33 +21,17 @@ module.exports = {
         gradient: {
           '0%, 100%': {
             'background-size': '200% 200%',
-            'background-position': 'left center',
+            'background-position': 'left center'
           },
           '50%': {
             'background-size': '200% 200%',
-            'background-position': 'right center',
-          },
-        },
-      },
-      typography: (theme) => ({
-        DEFAULT: {
-          css: {
-            color: theme('colors.gray.700'),
-            maxWidth: '65ch',
-          },
-        },
-        dark: {
-          css: {
-            color: theme('colors.gray.300'),
-          },
-        },
-      }),
-    },
-  },
-  corePlugins: {
-    preflight: true,
+            'background-position': 'right center'
+          }
+        }
+      }
+    }
   },
   plugins: [
-    require('@tailwindcss/typography'),
-  ],
+    require('@tailwindcss/typography')
+  ]
 }

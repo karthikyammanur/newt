@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import LandingPage from './pages/LandingPage';
 import SummariesPage from './pages/SummariesPage';
+import PastSummariesPage from './pages/PastSummariesPage';
+import PastSummariesTopicPage from './pages/PastSummariesTopicPage';
 import './styles/globals.css';
 
 const queryClient = new QueryClient({
@@ -23,6 +25,8 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/summaries" element={<SummariesPage />} />
+            <Route path="/past-summaries" element={<PastSummariesPage />} />
+            <Route path="/past-summaries/:topic" element={<PastSummariesTopicPage />} />
           </Routes>
         </AnimatePresence>
       </Router>

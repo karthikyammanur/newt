@@ -40,3 +40,4 @@ def get_similar_summaries(embedding: list, limit: int = 3):
 
 def get_mongo_client():
     return client
+

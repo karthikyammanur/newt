@@ -27,7 +27,7 @@ def prefetch_and_cache():
         if not summary:
             print(f"No summary generated for {topic}")
             continue
-        embedding = get_embedding(summary)
+        embedding = get_embedding(summary["summary"])
         # Save summary as dict with title, summary, sources
         save_summary(topic, summary, embedding, articles)
         print(f"Cached summary for {topic} at {datetime.utcnow()}")

@@ -12,7 +12,7 @@ const PastSummariesTopicPage = () => {
 
   useEffect(() => {
     setIsLoading(true);
-    setError(null);    fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`)
+    setError(null);    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch past summaries');
         return res.json();

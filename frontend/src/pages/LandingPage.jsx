@@ -158,10 +158,9 @@ const LandingPage = () => {
                 style={{ transform: `translateX(-${currentIndex * (100 / VISIBLE_TOPICS)}%)` }}
               >
                 {/* Topic cards */}
-                {topics.map((topic) => (
-                  <motion.div
+                {topics.map((topic) => (                  <motion.div
                     key={topic.id}
-                    onClick={() => navigate('/summaries?topic=' + encodeURIComponent(topic.title))}
+                    onClick={() => navigate('/past-summaries/' + encodeURIComponent(topic.title))}
                     className="topic-card flex-shrink-0 cursor-pointer p-6 rounded-xl shadow-lg
                               transition-all bg-gray-800/50 text-blue-100 backdrop-blur-sm text-center
                               select-none hover:bg-gray-700 mx-3"
@@ -172,6 +171,9 @@ const LandingPage = () => {
                     <h3 className="text-lg font-semibold lowercase">
                       {topic.title}
                     </h3>
+                    <p className="text-xs text-blue-300 mt-2">
+                      View past summaries
+                    </p>
                   </motion.div>
                 ))}
               </div>

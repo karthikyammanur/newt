@@ -29,18 +29,26 @@ const SummariesPage = () => {
   const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-
   useEffect(() => {
     setIsLoading(true);
     setError(null);
     setCurrentIndex(0);
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/summaries?topic=${encodeURIComponent(selectedTopic)}`)
+    const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/summaries?topic=${encodeURIComponent(selectedTopic)}`;
+    console.log('Fetching from URL:', apiUrl);
+    console.log('VITE_API_URL env var:', import.meta.env.VITE_API_URL);
+    
+    fetch(apiUrl)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch summaries');
+        console.log('Response status:', res.status);
+        if (!res.ok) throw new Error(`Failed to fetch summaries: ${res.status} ${res.statusText}`);
         return res.json();
       })
-      .then(data => setSummaries(data))
+      .then(data => {
+        console.log('Received data:', data);
+        setSummaries(data);
+      })
       .catch(err => {
+        console.error('Fetch error:', err);
         setError(err);
       })
       .finally(() => setIsLoading(false));

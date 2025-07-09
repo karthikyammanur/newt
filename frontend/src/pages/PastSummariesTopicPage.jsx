@@ -8,17 +8,25 @@ const PastSummariesTopicPage = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`)
+    const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`;
+    console.log('Past summaries - Fetching from URL:', apiUrl);
+    console.log('Past summaries - VITE_API_URL env var:', import.meta.env.VITE_API_URL);
+    
+    fetch(apiUrl)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch past summaries');
+        console.log('Past summaries - Response status:', res.status);
+        if (!res.ok) throw new Error(`Failed to fetch past summaries: ${res.status} ${res.statusText}`);
         return res.json();
       })
-      .then(data => setSummaries(data))
+      .then(data => {
+        console.log('Past summaries - Received data:', data);
+        setSummaries(data);
+      })
       .catch(err => {
+        console.error('Past summaries - Fetch error:', err);
         setError(err);
       })
       .finally(() => setIsLoading(false));

@@ -102,7 +102,7 @@ async def get_summaries(
             user_id = payload.get("sub")
         except Exception:
             user_id = None
-
+    
     # Personalized feed if user is authenticated
     if user_id:
         summaries = get_personalized_feed(user_id)
@@ -120,14 +120,33 @@ async def get_summaries(
     query = {}
     if topic:
         query["topic"] = topic
-    recent = list(summaries_collection.find(query).sort("date", -1).limit(5))
+    
+    # Get unique summaries, limit to 3 most recent, unique by title
+    recent = list(summaries_collection.find(query).sort("date", -1).limit(10))
+    
+    # Remove duplicates and limit results
+    seen_titles = set()
+    unique_summaries = []
+    for s in recent:
+        title = s.get("title", "").strip()
+        if title and title not in seen_titles:
+            seen_titles.add(title)
+            unique_summaries.append(s)
+        elif not title:  # Include summaries without titles
+            unique_summaries.append(s)
+        
+        if len(unique_summaries) >= 3:  # Limit to 3 unique summaries
+            break
+
     return [
         {
             "topic": s["topic"],
             "summary": s["summary"],
-            "timestamp": s["date"].isoformat() if s.get("date") else None
+            "timestamp": s["date"].isoformat() if s.get("date") else None,
+            "title": s.get("title", ""),
+            "sources": s.get("sources", [])
         }
-        for s in recent
+        for s in unique_summaries
     ]
 
 @router.get("/past_summaries")

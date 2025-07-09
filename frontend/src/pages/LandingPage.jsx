@@ -93,7 +93,7 @@ const LandingPage = () => {
 
   return (
     <Layout isLandingPage={true}>
-      <div className="relative overflow-hidden dark min-h-screen w-full">
+      <div className="relative overflow-hidden min-h-screen w-full">
         {/* Background gradient that follows cursor */}
         <motion.div
           className="absolute inset-0 w-full h-full transition-all duration-300"

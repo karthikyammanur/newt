@@ -43,6 +43,12 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
       : [];
   }
 
+  // Title logic: fallback and truncation
+  let displayTitle = title && title.trim() ? title.trim() : 'Untitled Summary';
+  if (displayTitle.length > 80) {
+    displayTitle = displayTitle.slice(0, 77) + '...';
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -70,7 +76,7 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
             {topic}
           </span>
           <div className="text-2xl md:text-3xl font-extrabold mb-2 text-white leading-tight">
-            {title}
+            {displayTitle}
           </div>
           <div className="text-xs text-blue-300 mb-2">
             {formatDate(timestamp)}

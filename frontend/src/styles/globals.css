@@ -25,7 +25,6 @@
   }
 }
 
-/* Full screen landing page */
 .full-screen-landing {
   min-height: 100vh;
   width: 100vw;
@@ -38,7 +37,6 @@
   overflow-x: hidden;
 }
 
-/* Improve carousel performance with hardware acceleration */
 .topic-card {
   will-change: transform;
   transform: translateZ(0);
@@ -46,16 +44,15 @@
   perspective: 1000;
 }
 
-/* Responsive carousel adjustments */
 @media (max-width: 768px) {
   .topic-card {
-    flex: 0 0 calc(100% - 24px) !important; /* Show 1 card on small screens */
+    flex: 0 0 calc(100% - 24px) !important;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
   .topic-card {
-    flex: 0 0 calc(50% - 24px) !important; /* Show 2 cards on medium screens */
+    flex: 0 0 calc(50% - 24px) !important;
   }
 }
 

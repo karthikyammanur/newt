@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import NewsCard from '../components/NewsCard';
-import { mockPastSummaries } from '../data/mockSummaries';
 
 const PastSummariesTopicPage = () => {
   const { topic } = useParams();
@@ -12,21 +11,15 @@ const PastSummariesTopicPage = () => {
 
   useEffect(() => {
     setIsLoading(true);
-    setError(null);    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`)
+    setError(null);
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/past_summaries?topic=${encodeURIComponent(topic)}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch past summaries');
         return res.json();
       })
       .then(data => setSummaries(data))
       .catch(err => {
-        console.log('Using cached mock data for past summaries due to fetch error:', err);
-        // Use mock data when API fails
-        if (mockPastSummaries[topic]) {
-          setSummaries(mockPastSummaries[topic]);
-          setError(null);
-        } else {
-          setError(err);
-        }
+        setError(err);
       })
       .finally(() => setIsLoading(false));
   }, [topic]);

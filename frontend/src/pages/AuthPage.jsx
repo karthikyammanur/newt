@@ -1,1 +1,1 @@
-// (file intentionally left empty, component removed)
+// File removed - AuthPage.jsx is obsolete, auth is not implemented

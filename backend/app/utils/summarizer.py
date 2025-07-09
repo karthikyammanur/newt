@@ -16,9 +16,8 @@ def summarize_topic(topic: str, top_k: int = 3, articles: list = None) -> dict:
     prompt = (
         "You are a tech news summarizer.\n"
         f"Summarize the following {len(docs)} articles about '{topic}' in 1-2 short, well-structured paragraphs. "
-        "Do NOT use bullet points, lists, or headings. Do NOT use markdown, bold, italics, or any formatting.\n"
-        "Write in clear, plain English, as a single block of text.\n"
-        "At the top, output a concise, plain-text title for the summary (no formatting).\n"
+        "First, generate a short, relevant, plain-text title for the summary (no formatting, no quotes, no markdown, no lists, no bold, no headings).\n"
+        "On the next line, write the summary in clear, plain English, as a single block of text.\n"
         "At the end, add a line: Sources: <comma-separated article URLs>.\n"
         "Return only the title, summary, and sources, nothing else.\n\n"
     )
@@ -37,8 +36,8 @@ def summarize_topic(topic: str, top_k: int = 3, articles: list = None) -> dict:
     title = topic.title()
     summary = text
     sources = []
-    lines = text.split('\n')
-    if lines and len(lines) > 2:
+    lines = [l for l in text.split('\n') if l.strip()]
+    if lines and len(lines) > 1:
         title = lines[0].strip()
         sources_line = next((l for l in lines if l.lower().startswith('sources:')), None)
         if sources_line:

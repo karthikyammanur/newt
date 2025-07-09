@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const Layout = ({ children, isLandingPage = false }) => {
   return (
-    <div className="min-h-screen bg-gray-950 text-blue-100 dark">
+    <div className="min-h-screen bg-gray-950 text-blue-100">
       <nav className="bg-gray-900 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">

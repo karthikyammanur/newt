@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import pytz
 
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/newt")
@@ -19,7 +20,7 @@ def save_summary(topic: str, summary: dict, embedding: list, articles: list):
         "sources": summary.get("sources", []),
         "embedding": embedding,
         "articles": articles,
-        "date": datetime.utcnow()
+        "date": datetime.now(pytz.UTC)  # Use timezone-aware datetime
     }
     return summaries_collection.insert_one(doc)
 

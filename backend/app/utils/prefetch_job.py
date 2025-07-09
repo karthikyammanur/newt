@@ -170,8 +170,7 @@ def prefetch_and_cache():
     for article in articles:
         try:
             # Generate summary and topic
-            result = generate_summary_and_topic(article)
-              # Prepare document for MongoDB with required schema
+            result = generate_summary_and_topic(article)            # Prepare document for MongoDB with required schema
             doc = {
                 "title": result["title"],
                 "summary": result["summary"],

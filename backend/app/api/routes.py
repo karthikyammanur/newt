@@ -17,6 +17,7 @@ import random
 from jose import jwt as jose_jwt
 from typing import Optional
 from bson import ObjectId
+import pytz
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -197,3 +198,38 @@ async def get_likes(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
     liked = get_liked_articles(user_id)
     return {"liked": liked}
+
+@router.get("/summaries/today")
+async def get_todays_summaries():
+    """Get all summaries generated for the current day (Central Time)"""
+    # Calculate today's date range in Central Time
+    central_tz = pytz.timezone('US/Central')
+    now_central = datetime.now(central_tz)
+    today_start_central = now_central.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end_central = now_central.replace(hour=23, minute=59, second=59, microsecond=999999)
+    
+    # Convert to UTC for MongoDB query
+    today_start_utc = today_start_central.astimezone(pytz.UTC)
+    today_end_utc = today_end_central.astimezone(pytz.UTC)
+    
+    # Query for today's summaries
+    query = {
+        "date": {
+            "$gte": today_start_utc,
+            "$lte": today_end_utc
+        }
+    }
+    
+    # Get today's summaries, sorted by timestamp (latest first)
+    todays_summaries = list(summaries_collection.find(query).sort("date", -1))
+    
+    return [
+        {
+            "title": s.get("title", ""),
+            "summary": s.get("summary", ""),
+            "topic": s.get("topic", ""),
+            "date": s.get("date").isoformat() if s.get("date") else None,
+            "sources": s.get("sources", [])
+        }
+        for s in todays_summaries
+    ]

@@ -89,13 +89,13 @@ const SummariesPage = () => {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <NewsCard
+                >                  <NewsCard
                     topic={summary.topic}
                     summary={summary.summary}
                     timestamp={summary.date}
                     title={summary.title}
                     sources={summary.sources}
+                    summaryId={summary._id}
                   />
                 </motion.div>
               ))}

@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShareIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { ShareIcon, ChevronDownIcon, ChevronUpIcon, BookOpenIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../context/AuthContext';
 
-const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', sources = [] }) => {
+const NewsCard = ({ 
+  topic, 
+  summary, 
+  timestamp, 
+  hideSummary = false, 
+  title = '', 
+  sources = [], 
+  summaryId = null 
+}) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showSources, setShowSources] = useState(false);
+  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
+  const [showPointsEarned, setShowPointsEarned] = useState(false);
+
+  const { markSummaryRead, isAuthenticated } = useAuth();
 
   const handleShare = async () => {
     try {
@@ -16,6 +29,17 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
       setErrorMessage('Failed to copy to clipboard.');
       setTimeout(() => setErrorMessage(""), 2500);
       console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
+  const handleMarkAsRead = async () => {
+    if (!isAuthenticated || !summaryId || hasMarkedAsRead) return;
+
+    const success = await markSummaryRead(summaryId);
+    if (success) {
+      setHasMarkedAsRead(true);
+      setShowPointsEarned(true);
+      setTimeout(() => setShowPointsEarned(false), 3000);
     }
   };
 
@@ -118,8 +142,22 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
                 </motion.ul>
               )}
             </AnimatePresence>
-          </div>
-          <div className="flex items-center gap-2">
+          </div>          <div className="flex items-center gap-2">
+            {isAuthenticated && summaryId && (
+              <button
+                onClick={handleMarkAsRead}
+                disabled={hasMarkedAsRead}
+                className={`p-2 rounded-full transition-colors ${
+                  hasMarkedAsRead 
+                    ? 'bg-green-800 text-green-200' 
+                    : 'hover:bg-gray-800 text-blue-300'
+                }`}
+                aria-label={hasMarkedAsRead ? 'Marked as read' : 'Mark as read'}
+                title={hasMarkedAsRead ? 'Already read (+1 point earned)' : 'Mark as read to earn 1 point'}
+              >
+                <BookOpenIcon className="h-5 w-5" />
+              </button>
+            )}
             <button
               onClick={handleShare}
               className="p-2 rounded-full hover:bg-gray-800 transition-colors"
@@ -129,9 +167,7 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Toast notification for copy success */}
+      </div>      {/* Toast notification for copy success */}
       <AnimatePresence>
         {showCopiedToast && (
           <motion.div
@@ -141,6 +177,20 @@ const NewsCard = ({ topic, summary, timestamp, hideSummary = false, title = '', 
             className="fixed bottom-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg"
           >
             Copied to clipboard!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Points earned notification */}
+      <AnimatePresence>
+        {showPointsEarned && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
+          >
+            +1 point earned!
           </motion.div>
         )}
       </AnimatePresence>

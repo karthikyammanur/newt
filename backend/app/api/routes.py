@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from app.utils.summarizer import summarize_topic
 from app.utils.news_fetcher import fetch_articles, TECH_KEYWORDS
 from app.core.auth import (
-    Token, UserCreate, create_access_token, 
-    get_password_hash, verify_password,
+    Token, UserCreate, UserResponse, create_access_token, 
+    get_password_hash, verify_password, get_current_user,
+    get_current_user_email, oauth2_scheme,
     ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
-from app.db.database import get_db, User
-from app.db.mongodb import db
+from app.db.mongodb import (
+    db, create_user, get_user_by_email, get_user_by_id,
+    update_user_read_log, get_user_stats
+)
 from app.utils.personalized_feed import get_personalized_feed
 from app.db.likes_db import like_article, unlike_article, get_liked_articles
 from datetime import timedelta, datetime
@@ -20,7 +22,6 @@ from bson import ObjectId
 import pytz
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 summaries_collection = db['summaries']
 
@@ -40,40 +41,42 @@ def mongodb_health_check():
         return {"mongodb": "error", "detail": str(e)}
 
 @router.post("/auth/register", response_model=Token)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
+async def register(user: UserCreate):
+    # Check if user already exists
+    existing_user = get_user_by_email(user.email)
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
+    # Create new user
     hashed_password = get_password_hash(user.password)
-    db_user = User(email=user.email, hashed_password=hashed_password)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    new_user = create_user(user.email, hashed_password)
     
+    # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "email": user.email}, 
+        data={"sub": user.email, "user_id": new_user["user_id"]}, 
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/auth/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Get user by email
+    user = get_user_by_email(form_data.username)
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "email": user.email}, 
+        data={"sub": user["email"], "user_id": user["user_id"]}, 
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -211,8 +214,7 @@ async def get_todays_summaries():
     # Convert to UTC for MongoDB query
     today_start_utc = today_start_central.astimezone(pytz.UTC)
     today_end_utc = today_end_central.astimezone(pytz.UTC)
-    
-    # Query for today's summaries
+      # Query for today's summaries
     query = {
         "date": {
             "$gte": today_start_utc,
@@ -225,6 +227,7 @@ async def get_todays_summaries():
     
     return [
         {
+            "_id": str(s.get("_id")),
             "title": s.get("title", ""),
             "summary": s.get("summary", ""),
             "topic": s.get("topic", ""),
@@ -233,3 +236,36 @@ async def get_todays_summaries():
         }
         for s in todays_summaries
     ]
+
+@router.get("/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Get current user information"""
+    stats = get_user_stats(current_user["user_id"])
+    if not stats:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User stats not found"
+        )
+    
+    return UserResponse(
+        user_id=stats["user_id"],
+        email=stats["email"],
+        points=stats["points"],
+        total_summaries_read=stats["total_summaries_read"],
+        today_reads=stats["today_reads"]
+    )
+
+@router.post("/summaries/{summary_id}/read")
+async def mark_summary_read(
+    summary_id: str, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark a summary as read by the current user"""
+    success = update_user_read_log(current_user["user_id"], summary_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to update read log"
+        )
+    
+    return {"message": "Summary marked as read", "points_earned": 1}

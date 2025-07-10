@@ -44,8 +44,7 @@ const PastSummariesTopicPage = () => {
           <div className="text-red-500 text-center">{error.message}</div>
         ) : !summaries.length ? (
           <div className="text-blue-300 text-center">No past summaries found for this topic.</div>
-        ) : (
-          <div className="flex flex-col gap-8">
+        ) : (          <div className="flex flex-col gap-8">
             {summaries.map((summary, idx) => (
               <NewsCard
                 key={summary._id || idx}
@@ -54,6 +53,7 @@ const PastSummariesTopicPage = () => {
                 timestamp={summary.timestamp}
                 title={summary.title}
                 sources={summary.sources}
+                summaryId={summary._id}
                 hideSummary={false}
               />
             ))}

@@ -23,8 +23,7 @@ const Layout = ({ children, isLandingPage = false }) => {
               <Link to="/" className="text-2xl md:text-3xl font-bold text-blue-100 lowercase tracking-tight">
                 newt
               </Link>
-            </div>
-            <div className="flex items-center space-x-6">
+            </div>            <div className="flex items-center space-x-6">
               <Link to="/" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
                 Home
               </Link>
@@ -34,6 +33,11 @@ const Layout = ({ children, isLandingPage = false }) => {
               <Link to="/past-summaries" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
                 Past Summaries
               </Link>
+              {isAuthenticated && (
+                <Link to="/dashboard" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
+                  Dashboard
+                </Link>
+              )}
               
               {isAuthenticated ? (
                 <div className="relative">

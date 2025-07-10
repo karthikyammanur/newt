@@ -173,10 +173,10 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Network error' };
     }
   };
-
   const value = {
     user,
     loading,
+    token,
     login,
     register,
     logout,

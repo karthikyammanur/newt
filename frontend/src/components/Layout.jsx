@@ -34,9 +34,14 @@ const Layout = ({ children, isLandingPage = false }) => {
                 Past Summaries
               </Link>
               {isAuthenticated && (
-                <Link to="/dashboard" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
-                  Dashboard
-                </Link>
+                <>
+                  <Link to="/dashboard" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link to="/discover" className="text-sm font-medium text-blue-100 hover:text-blue-300 transition-colors">
+                    Discover
+                  </Link>
+                </>
               )}
               
               {isAuthenticated ? (
@@ -50,8 +55,7 @@ const Layout = ({ children, isLandingPage = false }) => {
                     </div>
                     <span className="hidden sm:block">{user?.points || 0} pts</span>
                   </button>
-                  
-                  {showUserMenu && (
+                    {showUserMenu && (
                     <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl py-2 z-50 text-gray-900">
                       <div className="px-4 py-3 border-b border-gray-200">
                         <p className="text-sm font-medium">{user?.email}</p>
@@ -61,7 +65,13 @@ const Layout = ({ children, isLandingPage = false }) => {
                         <p className="text-xs text-gray-500 mt-1">
                           Today: {user?.today_reads || 0} articles
                         </p>
-                      </div>
+                      </div>                      <Link
+                        to="/profile"
+                        onClick={() => setShowUserMenu(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        View Profile
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"

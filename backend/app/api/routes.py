@@ -11,7 +11,8 @@ from app.core.auth import (
 from app.db.mongodb import (
     db, create_user, get_user_by_email, get_user_by_id,
     update_user_read_log, get_user_stats, get_user_dashboard_analytics,
-    follow_user, unfollow_user, get_user_followers, get_user_following, get_all_users
+    follow_user, unfollow_user, get_user_followers, get_user_following, get_all_users,
+    get_user_top_topics, get_recent_activity, calculate_reading_streak
 )
 from app.utils.personalized_feed import get_personalized_feed
 from app.db.likes_db import like_article, unlike_article, get_liked_articles
@@ -471,7 +472,7 @@ async def get_user_profile(
     user_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get user profile with follow status"""
+    """Get user profile with follow status, top topics, and recent activity"""
     user = get_user_by_id(user_id)
     if not user:
         raise HTTPException(
@@ -487,6 +488,47 @@ async def get_user_profile(
     # Check if this user is following current user
     is_follower = current_user_id in user.get("followers", [])
     
+    # Get top topics for this user
+    top_topics = get_user_top_topics(user_id, limit=3)
+    
+    # Get recent activity
+    daily_read_log = user.get("daily_read_log", {})
+    recent_activity_data = get_recent_activity(daily_read_log, days=7)
+    
+    # Convert recent activity to include titles from summaries
+    recent_activity = []
+    summaries_read = user.get("summaries_read", [])
+    
+    # Get recent summaries with topics for activity display
+    for activity in recent_activity_data:
+        if activity["reads"] > 0:
+            # Find summaries read on this date
+            activity_summaries = []
+            date_str = activity["date"]
+            
+            # For simplicity, we'll show the most recent summaries
+            # In a real implementation, you'd store read timestamps
+            for summary_id in summaries_read[-activity["reads"]:]:
+                try:
+                    summary = summaries_collection.find_one({"_id": ObjectId(summary_id)})
+                    if summary:
+                        activity_summaries.append({
+                            "title": summary.get("title", "Article Read"),
+                            "topic": summary.get("topic", "General"),
+                            "date": date_str
+                        })
+                except:
+                    continue
+            
+            recent_activity.extend(activity_summaries)
+    
+    # Calculate reading streak
+    reading_streak = calculate_reading_streak(daily_read_log)
+    
+    # Calculate average daily reads
+    daily_counts = list(daily_read_log.values()) if daily_read_log else [0]
+    avg_daily_reads = round(sum(daily_counts) / len(daily_counts), 1) if daily_counts else 0
+    
     return {
         "success": True,
         "user": {
@@ -499,6 +541,10 @@ async def get_user_profile(
             "created_at": user["created_at"],
             "is_following": is_following,
             "is_follower": is_follower,
-            "is_self": user_id == current_user_id
+            "is_self": user_id == current_user_id,
+            "top_topics": top_topics,
+            "recent_activity": recent_activity[-5:],  # Last 5 activities
+            "reading_streak": reading_streak,
+            "avg_daily_reads": avg_daily_reads
         }
     }

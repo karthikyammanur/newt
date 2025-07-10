@@ -9,6 +9,11 @@ import PastSummariesPage from './pages/PastSummariesPage';
 import PastSummariesTopicPage from './pages/PastSummariesTopicPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import ProfilePage from './pages/ProfilePage';
+import MyProfilePage from './pages/MyProfilePage';
+import FollowersPage from './pages/FollowersPage';
+import FollowingPage from './pages/FollowingPage';
+import DiscoverUsersPage from './pages/DiscoverUsersPage';
 import './styles/globals.css';
 
 const queryClient = new QueryClient({
@@ -31,6 +36,11 @@ function App() {
               <Route path="/past-summaries" element={<PastSummariesPage />} />
               <Route path="/past-summaries/:topic" element={<PastSummariesTopicPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<MyProfilePage />} />
+              <Route path="/profile/:userId" element={<ProfilePage />} />
+              <Route path="/profile/:userId/followers" element={<FollowersPage />} />
+              <Route path="/profile/:userId/following" element={<FollowingPage />} />
+              <Route path="/discover" element={<DiscoverUsersPage />} />
               <Route path="/auth" element={<AuthPage />} />
             </Routes>
           </AnimatePresence>

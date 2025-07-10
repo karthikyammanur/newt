@@ -1,211 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
-import Layout from '../components/Layout';
-
-const topics = [
-  { id: 1, title: 'machine learning' },
-  { id: 2, title: 'semiconductors' },
-  { id: 3, title: 'startups' },
-  { id: 4, title: 'programming languages' },
-  { id: 5, title: 'web development' },
-  { id: 6, title: 'artificial intelligence' },
-  { id: 7, title: 'software engineering' },
-  { id: 8, title: 'cloud computing' },
-  { id: 9, title: 'cybersecurity' },
-  { id: 10, title: 'data science' }
-];
-
-// Number of cards visible at once (this will vary based on screen size via CSS)
-const VISIBLE_TOPICS = 3;
+import { Link } from 'react-router-dom';
+import PublicLayout from '../components/PublicLayout';
 
 const LandingPage = () => {
-  const navigate = useNavigate();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const autoScrollTimer = useRef(null);
-
-  // Track mouse position for background effect
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-  // Continuous auto-scroll carousel with smooth animation
-  useEffect(() => {
-    if (!isPaused) {
-      // Use a shorter interval for more continuous motion
-      const timer = setInterval(() => {
-        setCurrentIndex(prevIndex => 
-          // Loop back to the beginning when we reach the end
-          (prevIndex + 0.05) % topics.length
-        );
-      }, 50); // Update more frequently for smoother motion
-      
-      autoScrollTimer.current = timer;
-      
-      return () => clearInterval(timer);
-    }
-  }, [isPaused]);
-  // Manual navigation with temporary pause
-  const goToSlide = (index) => {
-    // Temporarily pause to handle the manual navigation
-    setIsPaused(true);
-    // Set to exact index (not fractional) for indicators to work correctly
-    setCurrentIndex(index);
-    
-    // Resume very quickly for continuous effect
-    setTimeout(() => {
-      setIsPaused(false);
-    }, 800);
-  };
-
-  // Handle next/prev navigation
-  const handleNavigation = (direction) => {
-    // Temporarily pause
-    setIsPaused(true);
-    
-    // Get current index rounded to nearest integer
-    const roundedIndex = Math.round(currentIndex);
-    
-    const newIndex = direction === 'next'
-      ? (roundedIndex + 1) % topics.length
-      : (roundedIndex - 1 + topics.length) % topics.length;
-    
-    // Set to exact index (not fractional)
-    setCurrentIndex(newIndex);
-    
-    // Resume very quickly for continuous effect
-    setTimeout(() => {
-      setIsPaused(false);
-    }, 800);
-  };
-
-  const backgroundStyle = {
-    background: `radial-gradient(circle at ${mousePosition.x * 100}% ${mousePosition.y * 100}%, #232946 0%, #121212 100%)`
-  };
-
   return (
-    <Layout isLandingPage={true}>
-      <div className="relative overflow-hidden min-h-screen w-full">
-        {/* Background gradient that follows cursor */}
-        <motion.div
-          className="absolute inset-0 w-full h-full transition-all duration-300"
-          style={backgroundStyle}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-        />
-        
-        {/* Content container */}
-        <div className="relative z-10 min-h-screen w-full flex flex-col items-center justify-center">
-          {/* Title and subtitle */}
-          <motion.h1
-            className="text-7xl md:text-9xl font-bold mb-4 text-white lowercase drop-shadow-lg text-center"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            newt
-          </motion.h1>
-          <motion.p
-            className="text-xl md:text-2xl mb-8 text-center text-blue-200"
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            summarizing the world of tech, one byte at a time.
-          </motion.p>
+    <PublicLayout>
+      <div className="min-h-screen">
+        {/* Hero Section */}
+        <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4">
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden z-0">
+            <div className="absolute w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob top-1/4 left-1/4"></div>
+            <div className="absolute w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 top-1/3 right-1/4"></div>
+            <div className="absolute w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 bottom-1/3 right-1/3"></div>
+          </div>
           
-          {/* Start Reading Button */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mb-12"
-          >
-            <Link 
-              to="/summaries" 
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg 
-                        transition-colors duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+          {/* Content */}
+          <div className="relative z-10 max-w-5xl mx-auto">
+            <motion.h1 
+              className="text-6xl md:text-8xl font-bold mb-6 text-white"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7 }}
             >
-              Start Reading
-            </Link>
-          </motion.div>
-          
-          {/* Topic carousel - transform-based implementation */}
-          <div className="w-full max-w-5xl relative px-6 mb-8">            {/* Previous button - moved further left */}
-            <button 
-              onClick={() => handleNavigation('prev')}
-              className="absolute top-1/2 left-[-20px] z-20 transform -translate-y-1/2 bg-gray-800/70 hover:bg-gray-700 
-                        text-white rounded-full p-3 shadow-lg backdrop-blur-sm"
-              aria-label="Previous topic"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">
+                newt
+              </span>
+            </motion.h1>
             
-            {/* Carousel viewport */}
-            <div className="overflow-hidden">              <div 
-                className="flex transition-transform duration-[1500ms] ease-linear"
-                style={{ transform: `translateX(-${currentIndex * (100 / VISIBLE_TOPICS)}%)` }}
-              >
-                {/* Topic cards */}
-                {topics.map((topic) => (                  <motion.div
-                    key={topic.id}
-                    onClick={() => navigate('/past-summaries/' + encodeURIComponent(topic.title))}
-                    className="topic-card flex-shrink-0 cursor-pointer p-6 rounded-xl shadow-lg
-                              transition-all bg-gray-800/50 text-blue-100 backdrop-blur-sm text-center
-                              select-none hover:bg-gray-700 mx-3"
-                    style={{ flex: `0 0 calc(${100 / VISIBLE_TOPICS}% - 24px)` }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <h3 className="text-lg font-semibold lowercase">
-                      {topic.title}
-                    </h3>
-                    <p className="text-xs text-blue-300 mt-2">
-                      View past summaries
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-              {/* Next button - moved further right */}
-            <button 
-              onClick={() => handleNavigation('next')}
-              className="absolute top-1/2 right-[-20px] z-20 transform -translate-y-1/2 bg-gray-800/70 hover:bg-gray-700 
-                        text-white rounded-full p-3 shadow-lg backdrop-blur-sm"
-              aria-label="Next topic"
+            <motion.p 
+              className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto"
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              Stay informed with AI-powered summaries of the latest tech news, 
+              curated and delivered daily. Save time without missing out.
+            </motion.p>
+            
+            <motion.div 
+              className="flex flex-wrap justify-center gap-4 mt-8"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+            >
+              <Link 
+                to="/join" 
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-full text-white font-medium text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Get Started
+              </Link>
+              <Link 
+                to="/features" 
+                className="px-8 py-4 bg-gray-800/50 backdrop-blur-sm hover:bg-gray-800 rounded-full text-white font-medium text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Learn More
+              </Link>
+            </motion.div>
           </div>
-            {/* Topic indicators */}
-          <div className="flex justify-center space-x-3 mt-4">
-            {topics.map((_, index) => (
-              <button
-                key={index}
-                className={`h-3 rounded-full transition-all ${
-                  Math.floor(currentIndex) === index ? 'w-6 bg-blue-400' : 'w-3 bg-gray-600/50'
-                }`}
-                onClick={() => goToSlide(index)}
-                aria-label={`Go to topic ${index + 1}`}
-              />
-            ))}
+          
+          {/* Scroll down indicator */}
+          <motion.div 
+            className="absolute bottom-10 left-1/2 transform -translate-x-1/2"
+            animate={{ y: [0, 10, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <svg className="w-6 h-6 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </motion.div>
+        </section>
+        
+        {/* How It Works Section */}
+        <section className="py-20 px-4 backdrop-blur-sm bg-gray-900/30">
+          <div className="max-w-6xl mx-auto">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-bold text-center mb-16 text-white"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              How It Works
+            </motion.h2>
+            
+            <div className="grid md:grid-cols-3 gap-10">
+              {[
+                {
+                  icon: "🤖",
+                  title: "AI-Powered Summaries",
+                  description: "Our algorithms scan the latest tech news and generate concise, readable summaries."
+                },
+                {
+                  icon: "🏆",
+                  title: "Earn Points & Badges",
+                  description: "Build your reading streak, collect badges, and track your reading habits."
+                },
+                {
+                  icon: "📊",
+                  title: "Personalized Dashboard",
+                  description: "Get insights into your reading patterns and discover topics you love."
+                }
+              ].map((item, index) => (
+                <motion.div 
+                  key={index}
+                  className="bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl text-center"
+                  initial={{ y: 50, opacity: 0 }}
+                  whileInView={{ y: 0, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                >
+                  <div className="text-4xl mb-4">{item.icon}</div>
+                  <h3 className="text-xl font-semibold mb-3 text-blue-100">{item.title}</h3>
+                  <p className="text-blue-200">{item.description}</p>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+        
+        {/* CTA Section */}
+        <section className="py-20 px-4 text-center">
+          <div className="max-w-4xl mx-auto">
+            <motion.h2 
+              className="text-3xl md:text-4xl font-bold mb-6 text-white"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              Ready to stay updated in just minutes a day?
+            </motion.h2>
+            
+            <motion.p 
+              className="text-xl text-blue-100 mb-10"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              Join thousands of tech professionals who use newt to stay informed without information overload.
+            </motion.p>
+            
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+            >
+              <Link 
+                to="/join" 
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-full text-white font-medium text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
+              >
+                Sign Up Free
+              </Link>
+            </motion.div>
+          </div>
+        </section>
       </div>
-    </Layout>
+    </PublicLayout>
   );
 };
 

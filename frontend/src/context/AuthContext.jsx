@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
 
   const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -130,11 +131,11 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Network error' };
     }
   };
-
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
+    setIsAuthenticated(false);
   };
   const markSummaryRead = async (summaryId) => {
     if (!token) return { success: false, error: 'Not authenticated' };
@@ -172,7 +173,11 @@ export const AuthProvider = ({ children }) => {
       console.error('Error marking summary as read:', error);
       return { success: false, error: 'Network error' };
     }
-  };
+  };  // Update isAuthenticated whenever user changes
+  useEffect(() => {
+    setIsAuthenticated(!!user);
+  }, [user]);
+  
   const value = {
     user,
     loading,
@@ -181,7 +186,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     markSummaryRead,
-    isAuthenticated: !!user,
+    isAuthenticated,
   };
 
   return (

@@ -10,7 +10,8 @@ from app.core.auth import (
 )
 from app.db.mongodb import (
     db, create_user, get_user_by_email, get_user_by_id,
-    update_user_read_log, get_user_stats, get_user_dashboard_analytics
+    update_user_read_log, get_user_stats, get_user_dashboard_analytics,
+    follow_user, unfollow_user, get_user_followers, get_user_following, get_all_users
 )
 from app.utils.personalized_feed import get_personalized_feed
 from app.db.likes_db import like_article, unlike_article, get_liked_articles
@@ -353,3 +354,151 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve dashboard analytics: {str(e)}"
         )
+
+# Follow/Unfollow Endpoints
+@router.post("/follow/{target_user_id}")
+async def follow_user_endpoint(
+    target_user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Follow a user"""
+    follower_id = current_user["user_id"]
+    
+    result = follow_user(follower_id, target_user_id)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "message": result["message"],
+        "follower_id": follower_id,
+        "target_user_id": target_user_id
+    }
+
+@router.post("/unfollow/{target_user_id}")
+async def unfollow_user_endpoint(
+    target_user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Unfollow a user"""
+    follower_id = current_user["user_id"]
+    
+    result = unfollow_user(follower_id, target_user_id)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "message": result["message"],
+        "follower_id": follower_id,
+        "target_user_id": target_user_id
+    }
+
+@router.get("/user/{user_id}/followers")
+async def get_user_followers_endpoint(
+    user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get list of user's followers"""
+    result = get_user_followers(user_id)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "followers": result["followers"],
+        "follower_count": result["follower_count"]
+    }
+
+@router.get("/user/{user_id}/following")
+async def get_user_following_endpoint(
+    user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get list of users that this user is following"""
+    result = get_user_following(user_id)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "following": result["following"],
+        "following_count": result["following_count"]
+    }
+
+@router.get("/users")
+async def get_all_users_endpoint(
+    current_user: dict = Depends(get_current_user),
+    limit: int = 50
+):
+    """Get list of all users for discovery"""
+    current_user_id = current_user["user_id"]
+    
+    result = get_all_users(current_user_id, limit)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve users"
+        )
+    
+    return {
+        "success": True,
+        "users": result["users"],
+        "total_count": result["total_count"]
+    }
+
+@router.get("/user/{user_id}/profile")
+async def get_user_profile(
+    user_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user profile with follow status"""
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    current_user_id = current_user["user_id"]
+    
+    # Check if current user is following this user
+    is_following = user_id in current_user.get("following", [])
+    
+    # Check if this user is following current user
+    is_follower = current_user_id in user.get("followers", [])
+    
+    return {
+        "success": True,
+        "user": {
+            "user_id": user["user_id"],
+            "email": user["email"],
+            "points": user.get("points", 0),
+            "total_summaries_read": len(user.get("summaries_read", [])),
+            "follower_count": len(user.get("followers", [])),
+            "following_count": len(user.get("following", [])),
+            "created_at": user["created_at"],
+            "is_following": is_following,
+            "is_follower": is_follower,
+            "is_self": user_id == current_user_id
+        }
+    }

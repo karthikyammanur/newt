@@ -57,6 +57,8 @@ def create_user(email: str, hashed_password: str) -> Dict:
         "points": 0,
         "summaries_read": [],
         "daily_read_log": {},
+        "followers": [],
+        "following": [],
         "created_at": datetime.now(pytz.UTC),
         "updated_at": datetime.now(pytz.UTC)
     }
@@ -317,4 +319,157 @@ def get_recent_activity(daily_read_log: Dict, days: int = 7) -> List[Dict]:
         })
     
     return list(reversed(recent_activity))  # Oldest first
+
+# Follow/Unfollow Functions
+def follow_user(follower_id: str, target_user_id: str) -> Dict:
+    """Follow a user"""
+    # Check if both users exist
+    follower = get_user_by_id(follower_id)
+    target_user = get_user_by_id(target_user_id)
+    
+    if not follower:
+        return {"success": False, "error": "Follower user not found"}
+    if not target_user:
+        return {"success": False, "error": "Target user not found"}
+    if follower_id == target_user_id:
+        return {"success": False, "error": "Cannot follow yourself"}
+    
+    # Check if already following
+    if target_user_id in follower.get("following", []):
+        return {"success": False, "error": "Already following this user"}
+    
+    # Add to follower's following list
+    users_collection.update_one(
+        {"user_id": follower_id},
+        {
+            "$addToSet": {"following": target_user_id},
+            "$set": {"updated_at": datetime.now(pytz.UTC)}
+        }
+    )
+    
+    # Add to target user's followers list
+    users_collection.update_one(
+        {"user_id": target_user_id},
+        {
+            "$addToSet": {"followers": follower_id},
+            "$set": {"updated_at": datetime.now(pytz.UTC)}
+        }
+    )
+    
+    return {"success": True, "message": "Successfully followed user"}
+
+def unfollow_user(follower_id: str, target_user_id: str) -> Dict:
+    """Unfollow a user"""
+    # Check if both users exist
+    follower = get_user_by_id(follower_id)
+    target_user = get_user_by_id(target_user_id)
+    
+    if not follower:
+        return {"success": False, "error": "Follower user not found"}
+    if not target_user:
+        return {"success": False, "error": "Target user not found"}
+    if follower_id == target_user_id:
+        return {"success": False, "error": "Cannot unfollow yourself"}
+    
+    # Check if not following
+    if target_user_id not in follower.get("following", []):
+        return {"success": False, "error": "Not following this user"}
+    
+    # Remove from follower's following list
+    users_collection.update_one(
+        {"user_id": follower_id},
+        {
+            "$pull": {"following": target_user_id},
+            "$set": {"updated_at": datetime.now(pytz.UTC)}
+        }
+    )
+    
+    # Remove from target user's followers list
+    users_collection.update_one(
+        {"user_id": target_user_id},
+        {
+            "$pull": {"followers": follower_id},
+            "$set": {"updated_at": datetime.now(pytz.UTC)}
+        }
+    )
+    
+    return {"success": True, "message": "Successfully unfollowed user"}
+
+def get_user_followers(user_id: str) -> Dict:
+    """Get list of user's followers with their details"""
+    user = get_user_by_id(user_id)
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    follower_ids = user.get("followers", [])
+    followers = []
+    
+    for follower_id in follower_ids:
+        follower = get_user_by_id(follower_id)
+        if follower:
+            followers.append({
+                "user_id": follower["user_id"],
+                "email": follower["email"],
+                "points": follower.get("points", 0),
+                "total_summaries_read": len(follower.get("summaries_read", [])),
+                "created_at": follower["created_at"]
+            })
+    
+    return {
+        "success": True,
+        "followers": followers,
+        "follower_count": len(followers)
+    }
+
+def get_user_following(user_id: str) -> Dict:
+    """Get list of users that this user is following with their details"""
+    user = get_user_by_id(user_id)
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    following_ids = user.get("following", [])
+    following = []
+    
+    for following_id in following_ids:
+        followed_user = get_user_by_id(following_id)
+        if followed_user:
+            following.append({
+                "user_id": followed_user["user_id"],
+                "email": followed_user["email"],
+                "points": followed_user.get("points", 0),
+                "total_summaries_read": len(followed_user.get("summaries_read", [])),
+                "created_at": followed_user["created_at"]
+            })
+    
+    return {
+        "success": True,
+        "following": following,
+        "following_count": len(following)
+    }
+
+def get_all_users(current_user_id: str = None, limit: int = 50) -> Dict:
+    """Get list of all users for discovery (excluding current user)"""
+    query = {}
+    if current_user_id:
+        query["user_id"] = {"$ne": current_user_id}
+    
+    users = list(users_collection.find(query).limit(limit))
+    user_list = []
+    
+    for user in users:
+        user_list.append({
+            "user_id": user["user_id"],
+            "email": user["email"],
+            "points": user.get("points", 0),
+            "total_summaries_read": len(user.get("summaries_read", [])),
+            "follower_count": len(user.get("followers", [])),
+            "following_count": len(user.get("following", [])),
+            "created_at": user["created_at"]
+        })
+    
+    return {
+        "success": True,
+        "users": user_list,
+        "total_count": len(user_list)
+    }
 

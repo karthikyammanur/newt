@@ -20,10 +20,14 @@ from jose import jwt as jose_jwt
 from typing import Optional
 from bson import ObjectId
 import pytz
+from pydantic import BaseModel
 
 router = APIRouter()
 
 summaries_collection = db['summaries']
+
+class ReadSummaryRequest(BaseModel):
+    summary_id: str
 
 @router.get("/health")
 async def health_check():
@@ -261,11 +265,64 @@ async def mark_summary_read(
     current_user: dict = Depends(get_current_user)
 ):
     """Mark a summary as read by the current user"""
-    success = update_user_read_log(current_user["user_id"], summary_id)
-    if not success:
+    result = update_user_read_log(current_user["user_id"], summary_id)
+    if not result["success"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update read log"
+            detail=result.get("error", "Failed to update read log")
         )
     
-    return {"message": "Summary marked as read", "points_earned": 1}
+    return {
+        "message": "Summary marked as read", 
+        "points_earned": result["points_awarded"],
+        "already_read": result["already_read"]
+    }
+
+@router.post("/read_summary")
+async def read_summary(
+    request: ReadSummaryRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Mark a summary as read by the current user.
+    Updates user's summaries_read list, increments points, and logs daily read.
+    """
+    user_id = current_user["user_id"]
+    summary_id = request.summary_id
+    
+    # Validate summary_id format
+    try:
+        ObjectId(summary_id)
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid summary ID format"
+        )
+    
+    # Check if summary exists in database
+    summary = summaries_collection.find_one({"_id": ObjectId(summary_id)})
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Summary not found"
+        )
+    
+    # Update user's read log
+    result = update_user_read_log(user_id, summary_id)
+    if not result["success"]:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.get("error", "Failed to update read log")
+        )
+    
+    # Get updated user stats
+    updated_stats = get_user_stats(user_id)
+    
+    return {
+        "message": "Summary processed successfully",
+        "points_earned": result["points_awarded"],
+        "total_points": updated_stats["points"],
+        "today_reads": updated_stats["today_reads"],
+        "total_summaries_read": updated_stats["total_summaries_read"],
+        "already_read": result["already_read"]
+    }

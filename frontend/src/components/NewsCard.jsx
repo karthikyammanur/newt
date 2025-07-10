@@ -31,15 +31,24 @@ const NewsCard = ({
       console.error('Failed to copy to clipboard:', err);
     }
   };
-
   const handleMarkAsRead = async () => {
     if (!isAuthenticated || !summaryId || hasMarkedAsRead) return;
 
-    const success = await markSummaryRead(summaryId);
-    if (success) {
+    const result = await markSummaryRead(summaryId);
+    if (result.success) {
       setHasMarkedAsRead(true);
-      setShowPointsEarned(true);
-      setTimeout(() => setShowPointsEarned(false), 3000);
+      
+      // Show different messages based on whether points were earned
+      if (result.pointsEarned > 0) {
+        setShowPointsEarned(true);
+        setTimeout(() => setShowPointsEarned(false), 3000);
+      } else if (result.alreadyRead) {
+        setErrorMessage('Already read - no points awarded');
+        setTimeout(() => setErrorMessage(""), 2500);
+      }
+    } else {
+      setErrorMessage(result.error || 'Failed to mark as read');
+      setTimeout(() => setErrorMessage(""), 2500);
     }
   };
 

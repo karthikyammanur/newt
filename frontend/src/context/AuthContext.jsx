@@ -136,28 +136,42 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
   };
-
   const markSummaryRead = async (summaryId) => {
-    if (!token) return;
+    if (!token) return { success: false, error: 'Not authenticated' };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/summaries/${summaryId}/read`, {
+      const response = await fetch(`${API_BASE_URL}/read_summary`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ summary_id: summaryId }),
       });
 
       if (response.ok) {
+        const data = await response.json();
+        
         // Refresh user data to update points
-        getCurrentUser();
-        return true;
+        await getCurrentUser();
+        
+        return {
+          success: true,
+          pointsEarned: data.points_earned,
+          totalPoints: data.total_points,
+          todayReads: data.today_reads,
+          totalReads: data.total_summaries_read,
+          alreadyRead: data.already_read,
+          message: data.message
+        };
+      } else {
+        const errorData = await response.json();
+        return { success: false, error: errorData.detail || 'Failed to mark as read' };
       }
     } catch (error) {
       console.error('Error marking summary as read:', error);
+      return { success: false, error: 'Network error' };
     }
-    return false;
   };
 
   const value = {

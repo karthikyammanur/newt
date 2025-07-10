@@ -76,26 +76,42 @@ def get_user_by_id(user_id: str) -> Optional[Dict]:
         user["_id"] = str(user["_id"])
     return user
 
-def update_user_read_log(user_id: str, summary_id: str) -> bool:
+def update_user_read_log(user_id: str, summary_id: str) -> Dict:
     """Update user's read log when they read a summary"""
     today = datetime.now(pytz.timezone('US/Central')).strftime('%Y-%m-%d')
     
+    # Check if summary is already read to avoid duplicate points
+    user = users_collection.find_one({"user_id": user_id})
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    if summary_id in user.get("summaries_read", []):
+        return {"success": True, "already_read": True, "points_awarded": 0}
+    
     # Add summary to read list if not already there
-    users_collection.update_one(
+    add_result = users_collection.update_one(
         {"user_id": user_id},
         {"$addToSet": {"summaries_read": summary_id}}
     )
     
-    # Update daily read count
-    result = users_collection.update_one(
-        {"user_id": user_id},
-        {
-            "$inc": {f"daily_read_log.{today}": 1, "points": 1},
-            "$set": {"updated_at": datetime.now(pytz.UTC)}
+    # Update daily read count and points only if summary was actually added
+    if add_result.modified_count > 0:
+        update_result = users_collection.update_one(
+            {"user_id": user_id},
+            {
+                "$inc": {f"daily_read_log.{today}": 1, "points": 1},
+                "$set": {"updated_at": datetime.now(pytz.UTC)}
+            }
+        )
+        
+        return {
+            "success": True, 
+            "already_read": False, 
+            "points_awarded": 1,
+            "updated": update_result.modified_count > 0
         }
-    )
-    
-    return result.modified_count > 0
+    else:
+        return {"success": True, "already_read": True, "points_awarded": 0}
 
 def get_user_stats(user_id: str) -> Optional[Dict]:
     """Get user statistics"""

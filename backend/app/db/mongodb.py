@@ -57,6 +57,11 @@ def create_user(email: str, hashed_password: str) -> Dict:
         "points": 0,
         "summaries_read": [],
         "daily_read_log": {},
+        "streak": {
+            "current": 0,
+            "max": 0,
+            "last_read_date": None
+        },
         "followers": [],
         "following": [],
         "created_at": datetime.now(pytz.UTC),
@@ -83,6 +88,7 @@ def get_user_by_id(user_id: str) -> Optional[Dict]:
 def update_user_read_log(user_id: str, summary_id: str) -> Dict:
     """Update user's read log when they read a summary"""
     today = datetime.now(pytz.timezone('US/Central')).strftime('%Y-%m-%d')
+    read_time = datetime.now(pytz.timezone('US/Central'))
     
     # Check if summary is already read to avoid duplicate points
     user = users_collection.find_one({"user_id": user_id})
@@ -97,9 +103,10 @@ def update_user_read_log(user_id: str, summary_id: str) -> Dict:
         {"user_id": user_id},
         {"$addToSet": {"summaries_read": summary_id}}
     )
-    
-    # Update daily read count and points only if summary was actually added
+      # Update daily read count and points only if summary was actually added
     if add_result.modified_count > 0:
+        # Update reading streak
+        streak_result = update_reading_streak(user_id, read_time)
         update_result = users_collection.update_one(
             {"user_id": user_id},
             {
@@ -107,15 +114,30 @@ def update_user_read_log(user_id: str, summary_id: str) -> Dict:
                 "$set": {"updated_at": datetime.now(pytz.UTC)}
             }
         )
-        
         return {
             "success": True, 
             "already_read": False, 
             "points_awarded": 1,
-            "updated": update_result.modified_count > 0
+            "updated": update_result.modified_count > 0,
+            "streak": {
+                "current": streak_result.get("current_streak", 0),
+                "max": streak_result.get("max_streak", 0),
+                "updated": streak_result.get("streak_updated", False)
+            }
         }
     else:
-        return {"success": True, "already_read": True, "points_awarded": 0}
+        # Summary already read, get current streak info
+        current_streak = user.get("streak", {"current": 0, "max": 0, "last_read_date": None})
+        return {
+            "success": True, 
+            "already_read": True, 
+            "points_awarded": 0,
+            "streak": {
+                "current": current_streak.get("current", 0),
+                "max": current_streak.get("max", 0),
+                "updated": False
+            }
+        }
 
 def get_user_stats(user_id: str) -> Optional[Dict]:
     """Get user statistics"""
@@ -127,13 +149,17 @@ def get_user_stats(user_id: str) -> Optional[Dict]:
     today_reads = user.get("daily_read_log", {}).get(today, 0)
     total_reads = len(user.get("summaries_read", []))
     
+    # Get streak data
+    streak_data = user.get("streak", {"current": 0, "max": 0, "last_read_date": None})
+    
     return {
         "user_id": user["user_id"],
         "email": user["email"],
         "points": user.get("points", 0),
         "total_summaries_read": total_reads,
         "today_reads": today_reads,
-        "daily_read_log": user.get("daily_read_log", {})
+        "daily_read_log": user.get("daily_read_log", {}),
+        "streak": streak_data
     }
 
 def get_user_dashboard_analytics(user_id: str) -> Optional[Dict]:
@@ -183,12 +209,11 @@ def get_user_dashboard_analytics(user_id: str) -> Optional[Dict]:
     
     # Get top liked topics by analyzing read summaries
     top_topics = get_user_top_topics(user_id)
-    
-    # Get most active time of day (mock data for now - would need read timestamps)
+      # Get most active time of day (mock data for now - would need read timestamps)
     most_active_time = get_user_active_time_analysis(user_id)
     
     # Reading streak calculation
-    reading_streak = calculate_reading_streak(daily_read_log)
+    reading_streak = calculate_reading_streak(user)
     
     # Recent activity (last 7 days)
     recent_activity = get_recent_activity(daily_read_log, 7)
@@ -260,8 +285,40 @@ def get_user_active_time_analysis(user_id: str) -> Dict:
     else:
         return {"hour": 19, "period": "evening", "description": "7:00 PM"}
 
-def calculate_reading_streak(daily_read_log: Dict) -> Dict:
-    """Calculate current and longest reading streak"""
+def calculate_reading_streak(user_data: Dict) -> Dict:
+    """Calculate current and longest reading streak using new streak field"""
+    # First try to get streak data from the new field
+    streak_data = user_data.get("streak")
+    if streak_data and isinstance(streak_data, dict):
+        current = streak_data.get("current", 0)
+        longest = streak_data.get("max", 0)
+        
+        # Validate current streak by checking if last read was recent
+        last_read_date = streak_data.get("last_read_date")
+        if last_read_date:
+            try:
+                if isinstance(last_read_date, str):
+                    last_date = datetime.strptime(last_read_date, '%Y-%m-%d').date()
+                elif isinstance(last_read_date, datetime):
+                    last_date = last_read_date.date()
+                else:
+                    last_date = None
+                
+                if last_date:
+                    today = datetime.now(pytz.timezone('US/Central')).date()
+                    days_since = (today - last_date).days
+                    
+                    # If more than 1 day since last read, reset current streak
+                    if days_since > 1:
+                        current = 0
+            except:
+                # If date parsing fails, keep the stored values
+                pass
+        
+        return {"current": current, "longest": longest}
+    
+    # Fallback to old calculation method using daily_read_log
+    daily_read_log = user_data.get("daily_read_log", {})
     if not daily_read_log:
         return {"current": 0, "longest": 0}
     
@@ -471,5 +528,84 @@ def get_all_users(current_user_id: str = None, limit: int = 50) -> Dict:
         "success": True,
         "users": user_list,
         "total_count": len(user_list)
+    }
+
+def update_reading_streak(user_id: str, read_date: datetime) -> Dict:
+    """Update user's reading streak based on read date"""
+    user = users_collection.find_one({"user_id": user_id})
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    # Get current streak data, with defaults if not present (for existing users)
+    current_streak = user.get("streak", {})
+    if not current_streak:
+        current_streak = {"current": 0, "max": 0, "last_read_date": None}
+    
+    current_count = current_streak.get("current", 0)
+    max_count = current_streak.get("max", 0)
+    last_read_date = current_streak.get("last_read_date")
+    
+    # Convert read_date to Central timezone date string for comparison
+    central_tz = pytz.timezone('US/Central')
+    read_date_central = read_date.astimezone(central_tz).date()
+    read_date_str = read_date_central.strftime('%Y-%m-%d')
+    
+    # Determine if this is a consecutive day
+    if last_read_date:
+        # Parse the last read date
+        if isinstance(last_read_date, str):
+            last_date = datetime.strptime(last_read_date, '%Y-%m-%d').date()
+        elif isinstance(last_read_date, datetime):
+            last_date = last_read_date.date()
+        else:
+            # Handle any other format by resetting
+            last_date = None
+        
+        if last_date:
+            days_diff = (read_date_central - last_date).days
+            
+            if days_diff == 0:
+                # Same day - no change to streak
+                return {
+                    "success": True,
+                    "streak_updated": False,
+                    "current_streak": current_count,
+                    "max_streak": max_count
+                }
+            elif days_diff == 1:
+                # Consecutive day - increment streak
+                current_count += 1
+            else:
+                # Gap in reading - reset streak to 1
+                current_count = 1
+        else:
+            # Invalid last date - reset streak
+            current_count = 1
+    else:
+        # First time reading - start streak
+        current_count = 1
+    
+    # Update max streak if current exceeds it
+    max_count = max(max_count, current_count)
+    
+    # Update user's streak in database
+    update_result = users_collection.update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                "streak.current": current_count,
+                "streak.max": max_count,
+                "streak.last_read_date": read_date_str,
+                "updated_at": datetime.now(pytz.UTC)
+            }
+        }
+    )
+    
+    return {
+        "success": True,
+        "streak_updated": True,
+        "current_streak": current_count,
+        "max_streak": max_count,
+        "updated": update_result.modified_count > 0
     }
 

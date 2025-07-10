@@ -154,15 +154,15 @@ export const AuthProvider = ({ children }) => {
         
         // Refresh user data to update points
         await getCurrentUser();
-        
-        return {
+          return {
           success: true,
           pointsEarned: data.points_earned,
           totalPoints: data.total_points,
           todayReads: data.today_reads,
           totalReads: data.total_summaries_read,
           alreadyRead: data.already_read,
-          message: data.message
+          message: data.message,
+          streak: data.streak || { current: 0, max: 0, updated: false }
         };
       } else {
         const errorData = await response.json();

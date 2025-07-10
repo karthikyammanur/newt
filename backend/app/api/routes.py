@@ -277,7 +277,12 @@ async def mark_summary_read(
     return {
         "message": "Summary marked as read", 
         "points_earned": result["points_awarded"],
-        "already_read": result["already_read"]
+        "already_read": result["already_read"],
+        "streak": result.get("streak", {
+            "current": 0,
+            "max": 0,
+            "updated": False
+        })
     }
 
 @router.post("/read_summary")
@@ -316,8 +321,7 @@ async def read_summary(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.get("error", "Failed to update read log")
         )
-    
-    # Get updated user stats
+      # Get updated user stats
     updated_stats = get_user_stats(user_id)
     
     return {
@@ -326,7 +330,12 @@ async def read_summary(
         "total_points": updated_stats["points"],
         "today_reads": updated_stats["today_reads"],
         "total_summaries_read": updated_stats["total_summaries_read"],
-        "already_read": result["already_read"]
+        "already_read": result["already_read"],
+        "streak": result.get("streak", {
+            "current": 0,
+            "max": 0,
+            "updated": False
+        })
     }
 
 @router.get("/dashboard")
@@ -511,8 +520,7 @@ async def get_user_profile(
             for summary_id in summaries_read[-activity["reads"]:]:
                 try:
                     summary = summaries_collection.find_one({"_id": ObjectId(summary_id)})
-                    if summary:
-                        activity_summaries.append({
+                    if summary:                        activity_summaries.append({
                             "title": summary.get("title", "Article Read"),
                             "topic": summary.get("topic", "General"),
                             "date": date_str
@@ -523,7 +531,7 @@ async def get_user_profile(
             recent_activity.extend(activity_summaries)
     
     # Calculate reading streak
-    reading_streak = calculate_reading_streak(daily_read_log)
+    reading_streak = calculate_reading_streak(user)
     
     # Calculate average daily reads
     daily_counts = list(daily_read_log.values()) if daily_read_log else [0]

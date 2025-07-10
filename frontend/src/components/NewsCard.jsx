@@ -13,10 +13,11 @@ const NewsCard = ({
   summaryId = null 
 }) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [showSources, setShowSources] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");  const [showSources, setShowSources] = useState(false);
   const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
   const [showPointsEarned, setShowPointsEarned] = useState(false);
+  const [streakInfo, setStreakInfo] = useState(null);
+  const [showStreakUpdate, setShowStreakUpdate] = useState(false);
 
   const { markSummaryRead, isAuthenticated } = useAuth();
 
@@ -31,12 +32,20 @@ const NewsCard = ({
       console.error('Failed to copy to clipboard:', err);
     }
   };
+  
   const handleMarkAsRead = async () => {
     if (!isAuthenticated || !summaryId || hasMarkedAsRead) return;
 
     const result = await markSummaryRead(summaryId);
     if (result.success) {
       setHasMarkedAsRead(true);
+      
+      // Handle streak information
+      if (result.streak && result.streak.updated) {
+        setStreakInfo(result.streak);
+        setShowStreakUpdate(true);
+        setTimeout(() => setShowStreakUpdate(false), 4000);
+      }
       
       // Show different messages based on whether points were earned
       if (result.pointsEarned > 0) {
@@ -188,9 +197,7 @@ const NewsCard = ({
             Copied to clipboard!
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* Points earned notification */}
+      </AnimatePresence>      {/* Points earned notification */}
       <AnimatePresence>
         {showPointsEarned && (
           <motion.div
@@ -200,6 +207,29 @@ const NewsCard = ({
             className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
           >
             +1 point earned!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Streak update notification */}
+      <AnimatePresence>
+        {showStreakUpdate && streakInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-16 right-4 bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+          >
+            <span className="text-lg">🔥</span>
+            <div>
+              <div className="font-semibold">Reading Streak!</div>
+              <div className="text-sm">
+                Current: {streakInfo.current} days
+                {streakInfo.current === streakInfo.max && streakInfo.current > 1 && (
+                  <span className="ml-1 text-yellow-300">🏆 Personal Best!</span>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

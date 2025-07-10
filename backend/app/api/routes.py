@@ -10,7 +10,7 @@ from app.core.auth import (
 )
 from app.db.mongodb import (
     db, create_user, get_user_by_email, get_user_by_id,
-    update_user_read_log, get_user_stats
+    update_user_read_log, get_user_stats, get_user_dashboard_analytics
 )
 from app.utils.personalized_feed import get_personalized_feed
 from app.db.likes_db import like_article, unlike_article, get_liked_articles
@@ -326,3 +326,30 @@ async def read_summary(
         "total_summaries_read": updated_stats["total_summaries_read"],
         "already_read": result["already_read"]
     }
+
+@router.get("/dashboard")
+async def get_dashboard(current_user: dict = Depends(get_current_user)):
+    """Get comprehensive dashboard analytics for authenticated user"""
+    try:
+        user_id = current_user["user_id"]
+        analytics = get_user_dashboard_analytics(user_id)
+        
+        if not analytics:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Analytics data not found"
+            )
+        
+        return {
+            "success": True,
+            "analytics": analytics,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve dashboard analytics: {str(e)}"
+        )

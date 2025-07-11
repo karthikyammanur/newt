@@ -55,6 +55,11 @@ function App() {
                   <SummariesPage />
                 </ProtectedRoute>
               } />
+              <Route path="/today" element={
+                <ProtectedRoute>
+                  <SummariesPage />
+                </ProtectedRoute>
+              } />
               <Route path="/past-summaries" element={
                 <ProtectedRoute>
                   <PastSummariesPage />

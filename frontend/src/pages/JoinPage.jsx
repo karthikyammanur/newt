@@ -16,9 +16,8 @@ const JoinPage = () => {
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // If user was redirected here, send them back after login
-  const from = location.state?.from?.pathname || '/summaries';
+  // If user was redirected here, send them back after login, otherwise go to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();

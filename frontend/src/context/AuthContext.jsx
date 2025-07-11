@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
   const login = async (email, password) => {
     try {
       const formData = new FormData();

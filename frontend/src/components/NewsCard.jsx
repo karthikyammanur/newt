@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShareIcon, ChevronDownIcon, ChevronUpIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLockUtils';
+import './CardAnimations.css';
+import useAnimationRecovery from '../hooks/useAnimationRecovery';
+import './CardAnimations.css';
 
 const NewsCard = ({ 
   topic, 
@@ -13,13 +16,144 @@ const NewsCard = ({
   summaryId = null 
 }) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");  const [showSources, setShowSources] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isFlipping, setIsFlipping] = useState(false);
   const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
   const [showPointsEarned, setShowPointsEarned] = useState(false);
   const [streakInfo, setStreakInfo] = useState(null);
   const [showStreakUpdate, setShowStreakUpdate] = useState(false);
+  const [isEnlarged, setIsEnlarged] = useState(false);
+  
+  // Debounce ref to prevent rapid clicks
+  const clickTimeoutRef = useRef(null);
 
-  const { markSummaryRead, isAuthenticated } = useAuth();
+  const { markSummaryRead, isAuthenticated } = useAuth();  const handleCardClick = useCallback((e) => {
+    // Only enlarge if not clicking on buttons or links
+    const isButton = e.target.closest('button') || e.target.closest('a');
+    
+    // Prevent if already enlarged, during transitions, or if debouncing
+    if (isButton || isFlipping || isEnlarged || clickTimeoutRef.current) {
+      // Stop event propagation immediately to prevent bubbling
+      e.stopPropagation();
+      return;
+    }
+    
+    // Create a synchronous lock before the async operations
+    clickTimeoutRef.current = true;
+    
+    // Explicitly stop event propagation to prevent issues with nested elements
+    e.stopPropagation();
+    
+    // Immediately disable pointer events on the card to prevent multiple clicks
+    const card = e.currentTarget;
+    if (card) card.style.pointerEvents = 'none';
+      // Disable scrolling during enlargement with better scroll lock
+    lockBodyScroll();
+    
+    // If card is flipped, reset it before enlarging with proper timing
+    if (isFlipped) {
+      setIsFlipped(false);
+      
+      // Wait for flip transition to complete before enlarging
+      setTimeout(() => {
+        // Only proceed if component is still mounted
+        setIsEnlarged(true);
+        
+        // Set up a timer to release the debounce lock
+        setTimeout(() => {
+          clickTimeoutRef.current = null;
+          // Re-enable pointer events after animation is complete
+          if (card && card.parentNode) card.style.pointerEvents = '';
+        }, 800);
+      }, 400); // Match flip animation duration
+    } else {
+      // Very slight delay before enlarging to ensure DOM updates are batched properly
+      requestAnimationFrame(() => {
+        setIsEnlarged(true);
+        
+        // Set up a timer to release the debounce lock
+        setTimeout(() => {
+          clickTimeoutRef.current = null;
+          // Re-enable pointer events after animation is complete
+          if (card && card.parentNode) card.style.pointerEvents = '';
+        }, 800);
+      });
+    }
+  }, [isEnlarged, isFlipped, isFlipping]);
+  const handleViewSources = useCallback((e) => {
+    // Always stop propagation and prevent default to avoid bubbling
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Prevent flipping when enlarged, already flipping, or during debounce
+    if (isFlipping || isEnlarged || clickTimeoutRef.current) return;
+    
+    // Create a temporary lock to prevent multiple clicks
+    clickTimeoutRef.current = true;
+    
+    // Apply a CSS class to indicate flipping state for visual feedback
+    const card = e.currentTarget.closest('.card-3d-wrapper');
+    if (card) card.classList.add('is-flipping');
+    
+    // Set flipping state first to prevent further interactions
+    setIsFlipping(true);
+    
+    // Schedule flip with requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+      // Store timeout ref for cleanup
+      flipTimerRef.current = setTimeout(() => {
+        setIsFlipped(!isFlipped);
+        
+        // Reset flipping state after animation completes
+        flipTimerRef.current = setTimeout(() => {
+          setIsFlipping(false);
+          if (card) card.classList.remove('is-flipping');
+          clickTimeoutRef.current = null; // Release the lock
+        }, 800); // Match the transition duration
+      }, 10); // Short delay for browser painting
+    });
+  }, [isFlipping, isEnlarged, isFlipped]);const handleCloseEnlarged = useCallback((e) => {
+    // Always stop propagation to prevent triggering other handlers
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
+    // Create a lock to prevent reopening during close animation
+    if (clickTimeoutRef.current) return;
+    clickTimeoutRef.current = true;
+    
+    // First prevent any new clicks during the transition
+    const modal = document.querySelector('.fixed.inset-0.z-50');
+    if (modal) {
+      modal.style.pointerEvents = 'none';
+      // Add a CSS class to indicate closing state for better animations
+      modal.classList.add('modal-closing');
+    }
+      // Restore body scrolling with a small delay to prevent layout jumps
+    setTimeout(() => {
+      unlockBodyScroll();
+    }, 100);
+    
+    // Use setState with a callback to ensure proper sequence
+    setIsEnlarged(false);
+    
+    // Wait for exit animation to complete before resetting other states
+    setTimeout(() => {
+      setIsFlipped(false);
+      setIsFlipping(false);
+      
+      // Re-enable pointer events after everything is done
+      if (modal) {
+        modal.style.pointerEvents = '';
+        modal.classList.remove('modal-closing');
+      }
+      
+      // Release the lock after animation completes
+      clickTimeoutRef.current = null;
+    }, 450); // Slightly longer than animation to ensure completion
+  }, []);
 
   const handleShare = async () => {
     try {
@@ -33,21 +167,20 @@ const NewsCard = ({
     }
   };
   
-  const handleMarkAsRead = async () => {
+  const handleMarkAsRead = async (e) => {
+    e.stopPropagation();
     if (!isAuthenticated || !summaryId || hasMarkedAsRead) return;
 
     const result = await markSummaryRead(summaryId);
     if (result.success) {
       setHasMarkedAsRead(true);
       
-      // Handle streak information
       if (result.streak && result.streak.updated) {
         setStreakInfo(result.streak);
         setShowStreakUpdate(true);
         setTimeout(() => setShowStreakUpdate(false), 4000);
       }
       
-      // Show different messages based on whether points were earned
       if (result.pointsEarned > 0) {
         setShowPointsEarned(true);
         setTimeout(() => setShowPointsEarned(false), 3000);
@@ -58,8 +191,50 @@ const NewsCard = ({
     } else {
       setErrorMessage(result.error || 'Failed to mark as read');
       setTimeout(() => setErrorMessage(""), 2500);
+    }  };
+
+  // Refs for transition and animation control
+  const flipTimerRef = useRef(null);
+  const enlargeTimerRef = useRef(null);
+  const pointerTimerRef = useRef(null);
+
+  // Handle animation and state cleanup
+  useEffect(() => {
+    // When isEnlarged changes to false, we want to clean up
+    if (!isEnlarged) {
+      // Give time for exit animations to complete
+      const timer = setTimeout(() => {
+        unlockBodyScroll();
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // When opening, ensure body scroll is locked
+      lockBodyScroll();
     }
-  };
+  }, [isEnlarged]);
+  
+  // Clean up all timers and state when component unmounts
+  useEffect(() => {
+    return () => {
+      // Restore body scrolling
+      unlockBodyScroll();
+      
+      // Clear all timers to prevent memory leaks
+      if (typeof clickTimeoutRef.current === 'number') {
+        clearTimeout(clickTimeoutRef.current);
+      }
+      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+      if (enlargeTimerRef.current) clearTimeout(enlargeTimerRef.current);
+      if (pointerTimerRef.current) clearTimeout(pointerTimerRef.current);
+      
+      // Reset all refs
+      clickTimeoutRef.current = null;
+      flipTimerRef.current = null;
+      enlargeTimerRef.current = null;
+      pointerTimerRef.current = null;
+    };
+  }, []);
 
   const formatDate = (dateString) => {
     try {
@@ -74,9 +249,16 @@ const NewsCard = ({
     }
   };
 
+  // Handle sources being a string instead of array
+  let sourcesList = sources;
+  if (typeof sources === 'string') {
+    sourcesList = sources ? [sources] : [];
+  } else if (!Array.isArray(sources)) {
+    sourcesList = [];
+  }
+
   // Extract sources from summary if not provided
   let summaryText = summary;
-  let sourcesList = sources;
   if (!sourcesList.length && summary && summary.includes('Sources:')) {
     const parts = summary.split('Sources:');
     summaryText = parts[0].trim();
@@ -89,151 +271,523 @@ const NewsCard = ({
   let displayTitle = title && title.trim() ? title.trim() : 'Untitled Summary';
   if (displayTitle.length > 80) {
     displayTitle = displayTitle.slice(0, 77) + '...';
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="bg-gray-900 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all relative p-6 text-blue-100"
-    >
-      {/* Error Toast Notification */}
-      <AnimatePresence>
-        {errorMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+  }  return (  <>    {/* Enlarged Modal View */}
+    <AnimatePresence mode="wait" initial={false}>
+      {isEnlarged && (<motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ 
+              duration: 0.3,
+              ease: [0.4, 0.0, 0.2, 1] // Improved cubic-bezier for smoother fade
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={handleCloseEnlarged}
+            style={{ isolation: 'isolate' }} // Create stacking context for better rendering
+          >            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 10 }}
+              transition={{ 
+                type: "spring", 
+                damping: 25,  // Slightly lower damping for smoother motion
+                stiffness: 280, // Lower stiffness to reduce jerkiness
+                mass: 0.6, // Lower mass for faster motion
+                restDelta: 0.0005, // Higher precision endpoint
+                restSpeed: 0.001 // Tighter rest velocity threshold
+              }}
+              className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            style={{ 
+              perspective: '1000px',
+              borderRadius: '24px'
+            }}
           >
-            {errorMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex flex-col h-full">
-        <div className="mb-4">
-          <span className="inline-block px-3 py-1 bg-blue-800 text-blue-200 text-xs font-semibold rounded-full mb-2 uppercase tracking-wide">
-            {topic}
-          </span>
-          <div className="text-2xl md:text-3xl font-extrabold mb-2 text-white leading-tight">
-            {displayTitle}
-          </div>
-          <div className="text-xs text-blue-300 mb-2">
-            {formatDate(timestamp)}
-          </div>
-        </div>
-
-        {!hideSummary && (
-          <div className="mb-6">
-            <div className="text-blue-100 whitespace-pre-wrap text-base leading-relaxed">
-              {summaryText}
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center mt-auto gap-4">
-          <div>
-            <button
-              onClick={() => setShowSources(s => !s)}
-              className="flex items-center text-blue-400 hover:text-blue-200 text-sm font-semibold focus:outline-none"
-            >
-              Sources
-              {showSources ? <ChevronUpIcon className="h-4 w-4 ml-1" /> : <ChevronDownIcon className="h-4 w-4 ml-1" />}
-            </button>
-            <AnimatePresence>
-              {showSources && sourcesList.length > 0 && (
-                <motion.ul
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="mt-2 space-y-1 text-xs text-blue-200 bg-gray-800 rounded p-2 shadow-inner"
-                >
-                  {sourcesList.map((src, i) => (
-                    <li key={i} className="truncate">
-                      <a href={src} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">
-                        {src}
-                      </a>
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
-            </AnimatePresence>
-          </div>          <div className="flex items-center gap-2">
-            {isAuthenticated && summaryId && (
-              <button
-                onClick={handleMarkAsRead}
-                disabled={hasMarkedAsRead}
-                className={`p-2 rounded-full transition-colors ${
-                  hasMarkedAsRead 
-                    ? 'bg-green-800 text-green-200' 
-                    : 'hover:bg-gray-800 text-blue-300'
-                }`}
-                aria-label={hasMarkedAsRead ? 'Marked as read' : 'Mark as read'}
-                title={hasMarkedAsRead ? 'Already read (+1 point earned)' : 'Mark as read to earn 1 point'}
+            {/* Close button */}              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseEnlarged(e);
+                }}
+                className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors"
               >
-                <BookOpenIcon className="h-5 w-5" />
-              </button>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>            {/* Flip loading indicator */}
+            {isFlipping && (
+              <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
+                <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" style={{ willChange: 'transform' }}></div>
+              </div>
             )}
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-full hover:bg-gray-800 transition-colors"
-              aria-label="Share summary"
-            >
-              <ShareIcon className="h-5 w-5 text-blue-300" />
-            </button>
-          </div>
-        </div>
-      </div>      {/* Toast notification for copy success */}
-      <AnimatePresence>
-        {showCopiedToast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            Copied to clipboard!
-          </motion.div>
-        )}
-      </AnimatePresence>      {/* Points earned notification */}
-      <AnimatePresence>
-        {showPointsEarned && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            +1 point earned!
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Streak update notification */}
-      <AnimatePresence>
-        {showStreakUpdate && streakInfo && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-16 right-4 bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
-          >
-            <span className="text-lg">🔥</span>
-            <div>
-              <div className="font-semibold">Reading Streak!</div>
-              <div className="text-sm">
-                Current: {streakInfo.current} days
-                {streakInfo.current === streakInfo.max && streakInfo.current > 1 && (
-                  <span className="ml-1 text-yellow-300">🏆 Personal Best!</span>
-                )}
+            {/* Front of enlarged card */}            <div 
+              className="absolute inset-0 p-8 bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 border border-slate-700 overflow-y-auto"              style={{ 
+                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                backfaceVisibility: 'hidden',
+                transition: 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                borderRadius: '24px',
+                transformStyle: 'preserve-3d',
+                willChange: 'transform' // Hardware acceleration hint
+              }}
+            >
+              {/* Topic Badge with enhanced styling */}
+              <div className="relative mb-6 flex items-center justify-between">
+                <div className="relative">
+                  <span className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold rounded-full uppercase tracking-wider shadow-lg">
+                    {topic || 'General'}
+                  </span>
+                </div>
+                <div className="text-sm text-slate-400">
+                  {new Date(timestamp).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+
+              {/* Title */}
+              <h2 className="text-3xl font-bold text-white mb-6 leading-tight">
+                {displayTitle}
+              </h2>
+
+              {/* Full Summary */}
+              <div className="text-slate-200 text-lg leading-relaxed space-y-4 mb-8">
+                {summary.split('\n').map((paragraph, index) => (
+                  <p key={index} className="text-justify">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>              {/* Action buttons */}
+              <div className="flex items-center justify-between border-t border-slate-700 pt-6">                  <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isFlipping) return;
+                    
+                    setIsFlipping(true);
+                    
+                    // Slight delay before changing flipped state for smoother animation
+                    setTimeout(() => {
+                      setIsFlipped(!isFlipped);
+                    }, 10);
+                    
+                    // Use 800ms to match the transition duration
+                    setTimeout(() => setIsFlipping(false), 800);
+                  }}
+                  disabled={isFlipping}
+                  className={`flex items-center font-medium transition-colors ${
+                    isFlipping 
+                      ? 'text-blue-600 cursor-not-allowed' 
+                      : 'text-blue-400 hover:text-blue-300'
+                  }`}
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  View Sources
+                </button>
+                
+                <div className="flex items-center space-x-3">
+                  {isAuthenticated && summaryId && (
+                    <button
+                      onClick={handleMarkAsRead}
+                      disabled={hasMarkedAsRead}
+                      className={`px-4 py-2 rounded-full transition-colors font-medium ${
+                        hasMarkedAsRead 
+                          ? 'bg-green-700/50 text-green-300' 
+                          : 'bg-slate-700/50 hover:bg-slate-600/50 text-blue-300'
+                      }`}
+                      title={hasMarkedAsRead ? 'Already read (+1 point earned)' : 'Mark as read to earn 1 point'}
+                    >
+                      <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {hasMarkedAsRead ? 'Read' : 'Mark as Read'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleShare}
+                    className="px-4 py-2 rounded-full bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-blue-300 font-medium"
+                    title="Share summary"
+                  >
+                    <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                    Share
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Back of enlarged card - Sources view */}            <div 
+              className="absolute inset-0 p-8 bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900 border border-slate-700 overflow-y-auto"              style={{ 
+                transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
+                backfaceVisibility: 'hidden',
+                transition: 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                borderRadius: '24px',
+                transformStyle: 'preserve-3d',
+                willChange: 'transform' // Hardware acceleration hint
+              }}
+            >
+              <div className="flex items-center mb-6">
+                <svg className="w-8 h-8 mr-3 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                </svg>
+                <h3 className="text-2xl font-bold text-purple-100">Sources & References</h3>
+              </div>
+
+              {sources && sources.length > 0 ? (
+                <div className="space-y-4">
+                  {sources.map((source, index) => (
+                    <div key={index} className="bg-slate-800/30 rounded-xl p-6 border border-slate-700/50">
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-lg font-semibold text-purple-200 flex-1">
+                          {source.title || `Source ${index + 1}`}
+                        </h4>
+                        <span className="text-xs bg-purple-700/30 text-purple-300 px-2 py-1 rounded-full ml-3">
+                          {source.type || 'Article'}
+                        </span>
+                      </div>
+                      
+                      {source.description && (
+                        <p className="text-slate-300 mb-4 leading-relaxed">
+                          {source.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-400">
+                          {source.domain || new URL(source.url).hostname}
+                        </span>
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-purple-400 hover:text-purple-300 transition-colors font-medium"
+                        >
+                          Read Full Article
+                          <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 text-slate-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-slate-400 text-lg">No sources available for this summary</p>
+                </div>
+              )}              <div className="mt-8 pt-6 border-t border-slate-700">                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isFlipping) return;
+                    
+                    setIsFlipping(true);
+                    
+                    // Slight delay before changing flipped state for smoother animation
+                    setTimeout(() => {
+                      setIsFlipped(false);
+                    }, 10);
+                    
+                    // Use 800ms to match the transition duration
+                    setTimeout(() => setIsFlipping(false), 800);
+                  }}
+                  disabled={isFlipping}
+                  className={`flex items-center font-medium transition-colors ${
+                    isFlipping 
+                      ? 'text-purple-600 cursor-not-allowed' 
+                      : 'text-purple-400 hover:text-purple-300'
+                  }`}
+                >
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  Back to Summary
+                </button>
               </div>
             </div>
           </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>    {/* Regular Card View */}    <motion.div
+      className="h-full"
+      whileHover={!isEnlarged && !isAnimating ? { 
+        scale: 1.02,
+        transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1] } // Custom cubic-bezier for smoother hover
+      } : {}}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >      <div 
+        className={`relative w-full h-full select-none cursor-pointer overflow-hidden transition-all duration-500 card-glow ${
+          isFlipped ? 'shadow-2xl' : 'hover:shadow-xl'
+        } ${isFlipping || isEnlarged ? 'pointer-events-none opacity-0' : ''} card-3d-wrapper`}
+        onClick={handleCardClick}
+        style={{ 
+          minHeight: '380px',
+          perspective: '1000px',
+          borderRadius: '20px',
+          contain: 'layout paint size', /* Optimize rendering */
+          isolation: 'isolate' /* Create a new stacking context */
+        }}
+        title={isEnlarged ? '' : "Click anywhere on the card to enlarge and read full summary"}
+      >
+        {/* Flip loading indicator */}
+        {isFlipping && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          </div>
         )}
-      </AnimatePresence>
-    </motion.div>
+
+        {/* Front of card */}        <div 
+          className="absolute inset-0 p-6 bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 border border-slate-700 card-face card-front"
+          style={{ 
+            transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)',
+            borderRadius: '20px',
+            transformStyle: 'preserve-3d',
+            willChange: 'transform, opacity', // Hardware acceleration for both transform and opacity
+            contain: 'content', // Improve rendering performance
+            perspective: '1000px' // Consistent perspective
+          }}
+        >          {/* Topic Badge with enhanced styling */}
+          <div className="relative mb-4 flex items-center justify-between">
+            <div className="relative">
+              <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg">
+                {topic}
+              </span>
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25"></div>
+            </div>
+            
+            {/* Expand indicator and sources counter */}
+            <div className="flex items-center space-x-2">
+              {/* Click to expand indicator */}
+              <div className="flex items-center space-x-1 bg-slate-700/30 backdrop-blur-sm rounded-full px-2 py-1 opacity-60 hover:opacity-100 transition-opacity">
+                <svg className="w-3 h-3 text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                <span className="text-xs text-blue-300 font-medium">Expand</span>
+              </div>
+              
+              {/* Sources counter badge */}
+              {sourcesList.length > 0 && (
+                <div className="flex items-center space-x-1 bg-slate-700/50 backdrop-blur-sm rounded-full px-3 py-1">
+                  <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs text-blue-300 font-medium">{sourcesList.length}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Title with better typography */}
+          <h3 className="text-2xl font-bold mb-4 text-white leading-tight" style={{ 
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            {displayTitle}
+          </h3>
+          
+          {/* Timestamp with icon */}
+          <div className="flex items-center text-sm text-blue-300 mb-4">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            </svg>
+            {formatDate(timestamp)}
+          </div>
+          
+          {/* Summary with better spacing */}
+          {!hideSummary && (
+            <div className="text-slate-200 text-sm leading-relaxed mb-6" style={{ 
+              display: '-webkit-box',
+              WebkitLineClamp: 7,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: '1.6'
+            }}>
+              {summaryText}
+            </div>
+          )}          {/* Action buttons */}          <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between">
+            <button
+              onClick={handleViewSources}
+              className="flex items-center text-xs text-blue-400 opacity-70 hover:opacity-100 transition-opacity"
+            >
+              <svg className="w-4 h-4 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              View sources
+            </button>
+            
+            <div className="flex items-center space-x-2">
+              {isAuthenticated && summaryId && (
+                <button
+                  onClick={handleMarkAsRead}
+                  disabled={hasMarkedAsRead}
+                  className={`p-2 rounded-full transition-colors ${
+                    hasMarkedAsRead 
+                      ? 'bg-green-700/50 text-green-300' 
+                      : 'bg-slate-700/50 hover:bg-slate-600/50 text-blue-300'
+                  }`}
+                  title={hasMarkedAsRead ? 'Already read (+1 point earned)' : 'Mark as read to earn 1 point'}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="p-2 rounded-full bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-blue-300"
+                title="Share summary"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>        
+        {/* Back of card */}        <div 
+          className="absolute inset-0 p-6 bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900 border border-slate-700 card-face card-back"          
+          style={{ 
+            transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
+            backfaceVisibility: 'hidden',
+            transition: 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)',
+            borderRadius: '20px',
+            transformStyle: 'preserve-3d',
+            willChange: 'transform, opacity', // Hardware acceleration for both transform and opacity
+            contain: 'content', // Improve rendering performance
+            perspective: '1000px' // Consistent perspective
+          }}
+        >
+          {/* Header with icon */}
+          <div className="flex items-center mb-6">
+            <svg className="w-6 h-6 mr-3 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-xl font-bold text-white">Verified Sources</h3>
+          </div>
+          
+          {/* Sources list with enhanced styling */}
+          {sourcesList.length > 0 ? (
+            <div className="space-y-4 max-h-64 overflow-y-auto custom-scrollbar">
+              {sourcesList.map((src, i) => (
+                <div key={i} className="group">
+                  <div className="flex items-start p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-purple-500/50 transition-all duration-300">
+                    <div className="flex-shrink-0 w-2 h-2 bg-purple-400 rounded-full mt-2 mr-3 group-hover:bg-purple-300"></div>
+                    <a 
+                      href={src.startsWith('http') ? src : `https://${src}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-slate-200 hover:text-purple-300 transition-colors duration-200 text-sm leading-relaxed flex-1 group-hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {src.length > 60 ? `${src.substring(0, 60)}...` : src}
+                    </a>
+                    <svg className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors duration-200 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-32 text-slate-400">
+              <div className="text-center">
+                <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm">No sources available</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Back flip indicator */}
+          <div className="absolute bottom-4 right-4 flex items-center text-xs text-purple-400 opacity-70">
+            <svg className="w-4 h-4 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11H5a7.001 7.001 0 006.929-6.071 1 1 0 011.962.308A8.99 8.99 0 0115 12.07l2.707-2.707a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Back to summary
+          </div>
+        </div>
+      </div>    </motion.div>
+
+    {/* Toast notifications */}
+    <AnimatePresence>
+      {errorMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50"
+        >
+          {errorMessage}
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showCopiedToast && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg border border-slate-600"
+        >
+          Copied to clipboard!
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showPointsEarned && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
+        >
+          +1 point earned!
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {showStreakUpdate && streakInfo && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-16 right-4 bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+        >
+          <span className="text-lg">🔥</span>
+          <div>
+            <div className="font-semibold">Reading Streak!</div>
+            <div className="text-sm">
+              Current: {streakInfo.current} days
+              {streakInfo.current === streakInfo.max && streakInfo.current > 1 && (
+                <span className="ml-1 text-yellow-300">🏆 Personal Best!</span>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   );
 };
 

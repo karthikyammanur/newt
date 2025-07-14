@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.6);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.8);
+}
+
+/* Enhanced card animations */
+@keyframes cardGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+  }
+}
+
+.card-glow:hover {
+  animation: cardGlow 2s ease-in-out infinite;
+}
+
+/* Smooth gradient animations */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Background grid pattern */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+/* Smooth card flip transitions */
+.flip-card {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+.flip-card-front,
+.flip-card-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Enhanced button hover effects */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}

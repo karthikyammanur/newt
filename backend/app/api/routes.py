@@ -217,15 +217,33 @@ async def get_todays_summaries():
     today_start_central = now_central.replace(hour=0, minute=0, second=0, microsecond=0)
     today_end_central = now_central.replace(hour=23, minute=59, second=59, microsecond=999999)
     
-    # Convert to UTC for MongoDB query
+    # Since dates in database might be naive, we need to handle both cases
+    # Convert to UTC for timezone-aware comparison
     today_start_utc = today_start_central.astimezone(pytz.UTC)
     today_end_utc = today_end_central.astimezone(pytz.UTC)
-      # Query for today's summaries
+    
+    # Also get naive versions for naive datetime comparison
+    today_start_naive = today_start_central.replace(tzinfo=None)
+    today_end_naive = today_end_central.replace(tzinfo=None)
+    
+    # Query for today's summaries using both timezone-aware and naive dates
     query = {
-        "date": {
-            "$gte": today_start_utc,
-            "$lte": today_end_utc
-        }
+        "$or": [
+            # Timezone-aware dates
+            {
+                "date": {
+                    "$gte": today_start_utc,
+                    "$lte": today_end_utc
+                }
+            },
+            # Naive dates (assume they are in Central Time)
+            {
+                "date": {
+                    "$gte": today_start_naive,
+                    "$lte": today_end_naive
+                }
+            }
+        ]
     }
     
     # Get today's summaries, sorted by timestamp (latest first)
@@ -556,3 +574,179 @@ async def get_user_profile(
             "avg_daily_reads": avg_daily_reads
         }
     }
+
+# Automation endpoints for scheduled jobs and health monitoring
+@router.post("/automation/trigger-daily-summaries")
+async def trigger_daily_summaries():
+    """
+    Trigger daily summary generation (for use with external cron services)
+    This endpoint can be called by:
+    - Railway cron jobs
+    - GitHub Actions
+    - External cron services (cron-job.org, etc.)
+    - CI/CD pipelines
+    """
+    try:
+        from app.utils.prefetch_job import prefetch_and_cache, check_todays_summaries
+        
+        # Check if summaries already exist for today
+        existing_count = check_todays_summaries()
+        if existing_count > 0:
+            return {
+                "success": True,
+                "message": f"Daily summaries already exist ({existing_count} summaries)",
+                "summaries_count": existing_count,
+                "action": "skipped"
+            }
+        
+        # Run the prefetch job
+        central_tz = pytz.timezone('US/Central')
+        start_time = datetime.now(central_tz)
+        
+        result = prefetch_and_cache(force=False)
+        
+        # Check how many summaries were generated
+        new_count = check_todays_summaries()
+        end_time = datetime.now(central_tz)
+        duration = (end_time - start_time).total_seconds()
+        
+        return {
+            "success": True,
+            "message": f"Successfully generated {new_count} summaries",
+            "summaries_count": new_count,
+            "action": "generated",
+            "duration_seconds": duration,
+            "timestamp": end_time.isoformat()
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "timestamp": datetime.now(pytz.timezone('US/Central')).isoformat()
+        }
+
+@router.get("/automation/status")
+async def get_automation_status():
+    """
+    Get comprehensive automation system status
+    Returns health information about daily summary generation
+    """
+    try:
+        from app.utils.prefetch_job import check_todays_summaries
+        
+        central_tz = pytz.timezone('US/Central')
+        now_central = datetime.now(central_tz)
+        today_start = now_central.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Get today's summaries
+        todays_count = check_todays_summaries()
+        
+        # Get total summaries in database
+        total_summaries = summaries_collection.count_documents({})
+        
+        # Get recent summaries (last 24 hours)
+        yesterday = today_start - timedelta(days=1)
+        yesterday_utc = yesterday.astimezone(pytz.UTC)
+        
+        recent_summaries = list(summaries_collection.find({
+            "date": {"$gte": yesterday_utc}
+        }).sort("date", -1).limit(10))
+        
+        # Calculate system health
+        database_healthy = True
+        try:
+            # Test database connection
+            summaries_collection.find_one()
+        except:
+            database_healthy = False
+        
+        # Check if we have recent activity
+        has_recent_activity = len(recent_summaries) > 0
+        
+        # Overall health status
+        overall_healthy = (
+            database_healthy and 
+            todays_count > 0 and 
+            has_recent_activity
+        )
+        
+        return {
+            "success": True,
+            "overall_healthy": overall_healthy,
+            "timestamp": now_central.isoformat(),
+            "database": {
+                "healthy": database_healthy,
+                "total_summaries": total_summaries
+            },
+            "daily_generation": {
+                "todays_summaries": todays_count,
+                "has_todays_summaries": todays_count > 0,
+                "target_date": today_start.strftime("%Y-%m-%d")
+            },
+            "recent_activity": {
+                "summaries_last_24h": len(recent_summaries),
+                "latest_summary": {
+                    "title": recent_summaries[0].get("title", ""),
+                    "topic": recent_summaries[0].get("topic", ""),
+                    "date": recent_summaries[0].get("date").isoformat() if recent_summaries[0].get("date") else None
+                } if recent_summaries else None
+            },
+            "recommendations": [] if overall_healthy else [
+                "No summaries generated for today" if todays_count == 0 else None,
+                "Database connection issues detected" if not database_healthy else None,
+                "No recent summary activity detected" if not has_recent_activity else None
+            ]
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "overall_healthy": False,
+            "error": str(e),
+            "timestamp": datetime.now(pytz.timezone('US/Central')).isoformat()
+        }
+
+@router.post("/automation/force-generate")
+async def force_generate_summaries():
+    """
+    Force generation of summaries even if they already exist for today
+    WARNING: This will clear existing summaries for today and regenerate
+    """
+    try:
+        from app.utils.prefetch_job import prefetch_and_cache, check_todays_summaries, clear_todays_summaries
+        
+        central_tz = pytz.timezone('US/Central')
+        start_time = datetime.now(central_tz)
+        
+        # Clear existing summaries for today
+        clear_todays_summaries()
+        
+        # Run the prefetch job with force=True
+        result = prefetch_and_cache(force=True)
+        
+        # Check how many summaries were generated
+        new_count = check_todays_summaries()
+        end_time = datetime.now(central_tz)
+        duration = (end_time - start_time).total_seconds()
+        
+        return {
+            "success": True,
+            "message": f"Force generated {new_count} summaries",
+            "summaries_count": new_count,
+            "action": "force_generated",
+            "duration_seconds": duration,
+            "timestamp": end_time.isoformat(),
+            "warning": "Previous summaries for today were cleared"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "timestamp": datetime.now(pytz.timezone('US/Central')).isoformat()
+        }

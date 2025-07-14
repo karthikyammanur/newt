@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import {
@@ -13,6 +14,7 @@ import {
   Legend,
   ArcElement,
   TimeScale,
+  Filler,
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 
@@ -27,7 +29,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   ArcElement,
-  TimeScale
+  TimeScale,
+  Filler
 );
 
 const Dashboard = () => {
@@ -281,11 +284,10 @@ const Dashboard = () => {
         }
       }
     },
-  };
-  if (loading) {
+  };  if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
             <p className="mt-4 text-blue-100">Loading dashboard...</p>
@@ -297,9 +299,9 @@ const Dashboard = () => {
   if (error) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="bg-red-900 border border-red-700 rounded-lg p-6 max-w-md">
+            <div className="bg-red-900/80 backdrop-blur-lg border border-red-700/50 rounded-lg p-6 max-w-md">
               <h2 className="text-red-100 text-lg font-semibold mb-2">Error Loading Dashboard</h2>
               <p className="text-red-200">{error}</p>
               <button 
@@ -317,30 +319,28 @@ const Dashboard = () => {
   if (!analytics) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <p className="text-blue-100">No analytics data available</p>
           </div>
         </div>
       </Layout>
     );
-  }  return (
+  }return (
     <Layout>
-      <div className="min-h-screen bg-gray-950 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">          {/* Welcome Header */}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">{/* Welcome Header */}
           <div className="mb-8 animate-slide-in">
             <h1 className="text-3xl font-bold text-blue-100">👋 Welcome, {analytics.user_name || 'Reader'}!</h1>
             <p className="text-blue-300 mt-2">Track your reading progress and discover your habits</p>
           </div>
             {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <a 
-              href="/today" 
+          <div className="flex flex-wrap gap-4 mb-8">            <Link 
+              to="/today" 
               className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-1 animate-fade-in animation-delay-300"
             >
-              <span className="mr-2">📰</span>
-              Read Today's Summaries
-            </a>
+              <span className="mr-2">📰</span>              Read Today's Summaries
+            </Link>
             {analytics.reading_streak?.current > 0 && (
               <div className="inline-flex items-center px-4 py-2 bg-gray-800 text-blue-100 rounded-lg border border-gray-700 animate-fade-in animation-delay-600">
                 <span className="text-xl mr-2">🔥</span>
@@ -520,20 +520,14 @@ const Dashboard = () => {
                   Share the joy of efficient reading with your friends and colleagues.
                 </p>
               </div>
-              <div>
-                <button
+              <div>                <button
                   onClick={() => {
                     const inviteLink = "https://newtreader.com/join?ref=" + analytics.user_id;
                     navigator.clipboard.writeText(inviteLink);
                     // Show feedback instead of alert
                     const button = document.getElementById('invite-button');
                     const originalText = button.innerHTML;
-                    button.innerHTML = `
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Link Copied!
-                    `;
+                    button.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Link Copied!';
                     button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                     button.classList.add('bg-green-600');
                     setTimeout(() => {
@@ -544,11 +538,9 @@ const Dashboard = () => {
                   }}
                   id="invite-button"
                   className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                >                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                  Copy Invitation Link
+                  </svg>                  Copy Invitation Link
                 </button>
               </div>
             </div>

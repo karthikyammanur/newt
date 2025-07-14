@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { initScrollbarCompensation } from './utils/scrollLockUtils';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -14,6 +15,7 @@ import JoinPage from './pages/JoinPage';
 
 // Protected Pages
 import SummariesPage from './pages/SummariesPage';
+import TodayPage from './pages/TodayPage';
 import PastSummariesPage from './pages/PastSummariesPage';
 import PastSummariesTopicPage from './pages/PastSummariesTopicPage';
 import Dashboard from './pages/Dashboard';
@@ -36,6 +38,11 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Initialize scrollbar compensation on app start
+  useEffect(() => {
+    initScrollbarCompensation();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -45,8 +52,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/features" element={<FeaturesPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/faq" element={<FaqPage />} />
+              <Route path="/about" element={<AboutPage />} />              <Route path="/faq" element={<FaqPage />} />
               <Route path="/join" element={<JoinPage />} />
               
               {/* Protected Routes - Require Authentication */}
@@ -54,10 +60,9 @@ function App() {
                 <ProtectedRoute>
                   <SummariesPage />
                 </ProtectedRoute>
-              } />
-              <Route path="/today" element={
+              } />              <Route path="/today" element={
                 <ProtectedRoute>
-                  <SummariesPage />
+                  <TodayPage />
                 </ProtectedRoute>
               } />
               <Route path="/past-summaries" element={

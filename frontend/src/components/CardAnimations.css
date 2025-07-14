@@ -1,0 +1,158 @@
+/* Card Animation Optimizations for NewsCard and FixedSummaryCard */
+
+/* Global CSS class for modal-open state */
+.modal-open {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* 3D wrapper optimizations */
+.card-3d-wrapper {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  contain: layout style paint;
+  isolation: isolate;
+  will-change: transform;
+}
+
+/* Animation state classes for better control */
+.card-3d-wrapper.is-flipping {
+  pointer-events: none;
+  user-select: none;
+}
+
+.card-3d-wrapper.card-enlarging {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Card face optimizations */
+.card-face {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  contain: layout style paint;
+  will-change: transform, opacity;
+}
+
+.card-front {
+  transform-origin: center;
+}
+
+.card-back {
+  transform-origin: center;
+}
+
+/* Modal closing state for smoother transitions */
+.modal-closing {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Enhanced glow effect with better performance */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Custom scrollbar for sources list */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+  border: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.5);
+}
+
+/* Prevent text selection during animations */
+.card-3d-wrapper.is-flipping *,
+.card-3d-wrapper.card-enlarging * {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Hardware acceleration hints for smooth animations */
+.card-face,
+.modal-closing,
+.is-flipping {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .card-3d-wrapper,
+  .card-face {
+    transition-duration: 0.2s !important;
+  }
+  
+  .card-glow::before {
+    transition-duration: 0.1s !important;
+  }
+  
+  /* Disable 3D transforms for reduced motion */
+  .card-face {
+    transform: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card-glow::before {
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  }
+}
+
+/* Focus management for accessibility */
+.card-3d-wrapper:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Prevent layout shifts during animations */
+.card-3d-wrapper,
+.card-face {
+  contain: layout style paint;
+}
+
+/* GPU layer promotion for smooth animations */
+.card-face {
+  transform: translate3d(0, 0, 0);
+}

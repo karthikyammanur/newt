@@ -7,6 +7,8 @@ import google.generativeai as genai
 from app.utils.news_fetcher import TECH_KEYWORDS, is_tech_related
 from app.db.mongodb import db
 import re
+import sys
+import argparse
 
 load_dotenv()
 
@@ -15,12 +17,14 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 summaries_collection = db['summaries']
 
+# Central Time timezone
+CENTRAL_TZ = pytz.timezone('US/Central')
+
 def fetch_latest_tech_articles(max_articles: int = 50):
     """Fetch all available tech articles from the last 24 hours"""
     
     # Calculate 24 hours ago in Central Time
-    central_tz = pytz.timezone('US/Central')
-    now_central = datetime.now(central_tz)
+    now_central = datetime.now(CENTRAL_TZ)
     yesterday_central = now_central - timedelta(days=1)
     
     # Convert to UTC for API (GNews expects UTC)
@@ -138,8 +142,7 @@ SUMMARY: [1-2 paragraph summary in plain text]
 
 def clear_todays_summaries():
     """Clear existing summaries from today to avoid duplicates"""
-    central_tz = pytz.timezone('US/Central')
-    today_central = datetime.now(central_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_central = datetime.now(CENTRAL_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
     
     # Convert to UTC for MongoDB query
     today_utc = today_central.astimezone(pytz.UTC)
@@ -150,10 +153,45 @@ def clear_todays_summaries():
     
     print(f"Cleared {result.deleted_count} existing summaries from today")
 
-def prefetch_and_cache():
+def check_todays_summaries():
+    """Check if summaries exist for today (Central Time)"""
+    today_central = datetime.now(CENTRAL_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_central = today_central + timedelta(days=1)
+    
+    # Convert to UTC for MongoDB query
+    today_utc = today_central.astimezone(pytz.UTC)
+    tomorrow_utc = tomorrow_central.astimezone(pytz.UTC)
+    
+    count = summaries_collection.count_documents({
+        "date": {"$gte": today_utc, "$lt": tomorrow_utc}
+    })
+    
+    return count
+
+def log_last_generation():
+    """Log the timestamp of the last generation"""
+    timestamp = datetime.now(CENTRAL_TZ).isoformat()
+    print(f"Last generation completed at: {timestamp} (Central Time)")
+    
+    # You could also store this in database or a file for persistent tracking
+    try:
+        with open("last_generation.log", "w") as f:
+            f.write(timestamp)
+    except Exception as e:
+        print(f"Warning: Could not write to log file: {e}")
+
+def prefetch_and_cache(force=False):
     """Main function to fetch articles, generate summaries, and store in MongoDB"""
     
-    print(f"Starting daily prefetch job at {datetime.now()}")
+    central_now = datetime.now(CENTRAL_TZ)
+    print(f"Starting daily prefetch job at {central_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    
+    # Check if summaries already exist for today
+    if not force:
+        existing_count = check_todays_summaries()
+        if existing_count > 0:
+            print(f"Found {existing_count} existing summaries for today. Use --force to regenerate.")
+            return
     
     # Clear existing summaries from today
     clear_todays_summaries()
@@ -190,6 +228,12 @@ def prefetch_and_cache():
             continue
     
     print(f"Prefetch job completed. Processed {processed_count} articles.")
+    log_last_generation()
 
 if __name__ == "__main__":
-    prefetch_and_cache()
+    parser = argparse.ArgumentParser(description='Prefetch and cache tech news summaries')
+    parser.add_argument('--force', action='store_true', 
+                       help='Force regeneration even if summaries exist for today')
+    
+    args = parser.parse_args()
+    prefetch_and_cache(force=args.force)

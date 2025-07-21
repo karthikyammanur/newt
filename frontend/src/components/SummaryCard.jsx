@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpenIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
+import SummaryModal from './SummaryModal';
 
 const SummaryCard = ({ 
   topic, 
@@ -12,9 +13,11 @@ const SummaryCard = ({
   summaryId = null 
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);  const [showPointsEarned, setShowPointsEarned] = useState(false);
+  const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
+  const [showPointsEarned, setShowPointsEarned] = useState(false);
   const [rippleEffect, setRippleEffect] = useState(false);
   const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Safe hook usage with fallback
   let isAuthenticated = false;
@@ -44,7 +47,17 @@ const SummaryCard = ({
     // Reset ripple effect after animation completes
     setTimeout(() => setRippleEffect(false), 600);
   };
-    const handleMarkAsRead = async (e) => {
+
+  const handleEnlargeSummary = (e) => {
+    e.stopPropagation();
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleMarkAsRead = async (e) => {
     e.stopPropagation(); // Prevent card flip when clicking on the mark as read button
     
     if (!isAuthenticated || !summaryId || hasMarkedAsRead || !markSummaryRead) return;
@@ -134,10 +147,22 @@ const SummaryCard = ({
               </div>
             </div>
           )}
-          
-          <h3 className="text-2xl font-bold mb-3 text-white line-clamp-2">{displayTitle}</h3>
+            <h3 className="text-2xl font-bold mb-3 text-white line-clamp-2">{displayTitle}</h3>
           <div className="text-xs text-blue-300 mb-3">{formatDate(timestamp)}</div>
-          <div className="text-blue-100 text-sm line-clamp-6">{summaryText}</div>
+          <div 
+            className="text-blue-100 text-sm line-clamp-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-2 -m-2 transition-colors group"
+            onClick={handleEnlargeSummary}
+            title="Click to read full summary"
+          >
+            {summaryText}
+            {/* Enlarge indicator */}
+            <div className="mt-2 flex items-center text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h2M4 16v4a2 2 0 002 2h2m8-20h2a2 2 0 012 2v4m0 8v4a2 2 0 01-2 2h-2" />
+              </svg>
+              Click to expand
+            </div>
+          </div>
           
           <div className="absolute bottom-2 right-2 text-xs text-blue-400">
             Click to flip
@@ -214,10 +239,20 @@ const SummaryCard = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded-lg text-xs"
-        >
-          +1 point!
+        >          +1 point!
         </motion.div>
       )}
+
+      {/* Summary Modal */}
+      <SummaryModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal}
+        topic={topic}
+        title={title}
+        summary={summary}
+        timestamp={timestamp}
+        sources={sources}
+      />
     </motion.div>
   );
 };

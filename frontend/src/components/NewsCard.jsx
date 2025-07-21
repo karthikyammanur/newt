@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import './CardAnimations.css';
 import useAnimationRecovery from '../hooks/useAnimationRecovery';
+import SummaryModal from './SummaryModal';
 
 const NewsCard = ({ 
   topic, 
@@ -21,6 +22,7 @@ const NewsCard = ({
   const [showPointsEarned, setShowPointsEarned] = useState(false);
   const [streakInfo, setStreakInfo] = useState(null);
   const [showStreakUpdate, setShowStreakUpdate] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Debounce ref to prevent rapid clicks
   const clickTimeoutRef = useRef(null);
@@ -69,6 +71,15 @@ const NewsCard = ({
       setTimeout(() => setErrorMessage(""), 2500);
       console.error('Failed to copy to clipboard:', err);
     }
+  };
+
+  const handleEnlargeSummary = (e) => {
+    e.stopPropagation();
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
   
   const handleMarkAsRead = async (e) => {
@@ -229,17 +240,28 @@ const NewsCard = ({
             </svg>
             {formatDate(timestamp)}
           </div>
-          
-          {/* Summary with better spacing */}
+            {/* Summary with better spacing */}
           {!hideSummary && (
-            <div className="text-slate-200 text-sm leading-relaxed mb-6" style={{ 
-              display: '-webkit-box',
-              WebkitLineClamp: 7,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: '1.6'
-            }}>
+            <div 
+              className="text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group" 
+              style={{ 
+                display: '-webkit-box',
+                WebkitLineClamp: 7,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: '1.6'
+              }}
+              onClick={handleEnlargeSummary}
+              title="Click to read full summary"
+            >
               {summaryText}
+              {/* Enlarge indicator */}
+              <div className="mt-2 flex items-center text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h2M4 16v4a2 2 0 002 2h2m8-20h2a2 2 0 012 2v4m0 8v4a2 2 0 01-2 2h-2" />
+                </svg>
+                Click to expand
+              </div>
             </div>
           )}
           
@@ -406,9 +428,20 @@ const NewsCard = ({
                 <span className="ml-1 text-yellow-300">🏆 Personal Best!</span>
               )}
             </div>
-          </div>
-        </motion.div>
-      )}    </AnimatePresence>
+          </div>        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Summary Modal */}
+    <SummaryModal 
+      isOpen={isModalOpen} 
+      onClose={handleCloseModal} 
+      summary={summary}
+      title={title}
+      topic={topic}
+      sources={sources}
+      timestamp={timestamp}
+    />
     </>
   );
 };

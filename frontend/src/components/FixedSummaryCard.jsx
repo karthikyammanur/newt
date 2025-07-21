@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './CardAnimations.css';
 import useAnimationRecovery from '../hooks/useAnimationRecovery';
+import SummaryModal from './SummaryModal';
 
 const FixedSummaryCard = ({ 
   topic, 
@@ -10,12 +11,15 @@ const FixedSummaryCard = ({
   title = '', 
   sources = [], 
   summaryId = null 
-}) => {  const [isFlipped, setIsFlipped] = useState(false);
+}) => {
+  const [isFlipped, setIsFlipped] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Single ref for preventing rapid clicks
-  const isProcessingRef = useRef(false);  const flipTimerRef = useRef(null);
+  const isProcessingRef = useRef(false);
+  const flipTimerRef = useRef(null);
   const handleFlip = useCallback((e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -64,6 +68,15 @@ const FixedSummaryCard = ({
       console.error('Invalid date:', err);
       return 'Recent';
     }
+  };
+
+  const handleEnlargeSummary = (e) => {
+    e.stopPropagation();
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
   };
 
   // Handle sources being a string instead of array
@@ -150,17 +163,28 @@ const FixedSummaryCard = ({
             </svg>
             {formatDate(timestamp)}
           </div>
-          
-          {/* Summary with better spacing */}
-          <div className="text-slate-200 text-sm leading-relaxed mb-6" style={{ 
-            display: '-webkit-box',
-            WebkitLineClamp: 7,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            lineHeight: '1.6'
-          }}>
+            {/* Summary with better spacing */}
+          <div 
+            className="text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group" 
+            style={{ 
+              display: '-webkit-box',
+              WebkitLineClamp: 7,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              lineHeight: '1.6'
+            }}
+            onClick={handleEnlargeSummary}
+            title="Click to read full summary"
+          >
             {summary}
-          </div>          {/* Flip indicator with animation */}
+            {/* Enlarge indicator */}
+            <div className="mt-2 flex items-center text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4a2 2 0 012-2h2M4 16v4a2 2 0 002 2h2m8-20h2a2 2 0 012 2v4m0 8v4a2 2 0 01-2 2h-2" />
+              </svg>
+              Click to expand
+            </div>
+          </div>{/* Flip indicator with animation */}
           <button
             onClick={handleFlip}
             disabled={isFlipping || isAnimating}
@@ -240,10 +264,20 @@ const FixedSummaryCard = ({
             <svg className="w-4 h-4 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11H5a7.001 7.001 0 006.929-6.071 1 1 0 011.962.308A8.99 8.99 0 0115 12.07l2.707-2.707a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>            Back to summary
-          </button>
-        </div>
+          </button>        </div>
       </div>
       </motion.div>
+
+      {/* Summary Modal */}
+      <SummaryModal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        title={title}
+        topic={topic}
+        summary={summary}
+        timestamp={timestamp}
+        sources={sources}
+      />
     </>
   );
 };

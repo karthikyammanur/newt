@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '../components/Layout';
 import NewsCard from '../components/NewsCard';
 import NewsCardNew from '../components/NewsCardNew';
 import SimpleNewsCard from '../components/SimpleNewsCard';
 
 const TestNewsCard = () => {
-  const [testEnlarged, setTestEnlarged] = useState(false);
-
   const dummySummary = {
     topic: "AI/ML",
     title: "Revolutionary AI Breakthrough Transforms Industry",
@@ -30,37 +28,11 @@ const TestNewsCard = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-blue-100 mb-4">
-              NewsCard Enlargement Test
+              NewsCard Component Test
             </h1>
             <p className="text-blue-300 mb-4">
-              Testing both Simple and Complex NewsCard components
+              Testing different NewsCard component variants and their functionality
             </p>
-            
-            {/* Test Button */}
-            <button
-              onClick={() => {
-                console.log('Test button clicked');
-                setTestEnlarged(!testEnlarged);
-              }}
-              className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
-            >
-              Toggle Test Modal: {testEnlarged ? 'Hide' : 'Show'}
-            </button>
-            
-            {/* Simple Test Modal */}
-            {testEnlarged && (
-              <div className="fixed inset-0 z-50 bg-red-500/50 flex items-center justify-center">
-                <div className="bg-white text-black p-8 rounded">
-                  <h2>Test Modal Works!</h2>
-                  <button 
-                    onClick={() => setTestEnlarged(false)}
-                    className="bg-red-500 text-white px-2 py-1 rounded mt-2"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Simple NewsCard */}

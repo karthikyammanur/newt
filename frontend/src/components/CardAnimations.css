@@ -1,13 +1,5 @@
 /* Card Animation Optimizations for NewsCard and FixedSummaryCard */
 
-/* Global CSS class for modal-open state */
-.modal-open {
-  overflow: hidden !important;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-}
-
 /* 3D wrapper optimizations */
 .card-3d-wrapper {
   transform-style: preserve-3d;
@@ -19,11 +11,6 @@
 
 /* Animation state classes for better control */
 .card-3d-wrapper.is-flipping {
-  pointer-events: none;
-  user-select: none;
-}
-
-.card-3d-wrapper.card-enlarging {
   pointer-events: none;
   user-select: none;
 }
@@ -101,8 +88,7 @@
 }
 
 /* Prevent text selection during animations */
-.card-3d-wrapper.is-flipping *,
-.card-3d-wrapper.card-enlarging * {
+.card-3d-wrapper.is-flipping * {
   user-select: none;
   pointer-events: none;
 }

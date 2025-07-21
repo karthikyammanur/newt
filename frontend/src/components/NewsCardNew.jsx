@@ -10,8 +10,7 @@ const NewsCard = ({
   title = '', 
   sources = [], 
   summaryId = null 
-}) => {
-  const [showCopiedToast, setShowCopiedToast] = useState(false);
+}) => {  const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -19,25 +18,14 @@ const NewsCard = ({
   const [showPointsEarned, setShowPointsEarned] = useState(false);
   const [streakInfo, setStreakInfo] = useState(null);
   const [showStreakUpdate, setShowStreakUpdate] = useState(false);
-  const [isEnlarged, setIsEnlarged] = useState(false);
 
   const { markSummaryRead, isAuthenticated } = useAuth();
-
-  const handleCardClick = () => {
-    setIsEnlarged(true);
-  };
 
   const handleViewSources = (e) => {
     e.stopPropagation();
     if (isFlipping) return;
     setIsFlipping(true);
-    setIsFlipped(!isFlipped);
-    setTimeout(() => setIsFlipping(false), 700);
-  };
-
-  const handleCloseEnlarged = () => {
-    setIsEnlarged(false);
-    setIsFlipped(false);
+    setIsFlipped(!isFlipped);    setTimeout(() => setIsFlipping(false), 700);
   };
 
   const handleShare = async () => {
@@ -115,134 +103,8 @@ const NewsCard = ({
   if (displayTitle.length > 80) {
     displayTitle = displayTitle.slice(0, 77) + '...';
   }
-
   return (
     <>
-      {/* Enlarged Modal View */}
-      <AnimatePresence>
-        {isEnlarged && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={handleCloseEnlarged}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 rounded-3xl border border-slate-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <button
-                onClick={handleCloseEnlarged}
-                className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/50 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <div className="p-8 h-full overflow-y-auto">
-                {/* Topic Badge */}
-                <div className="mb-6">
-                  <span className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold rounded-full uppercase tracking-wider shadow-lg">
-                    {topic || 'General'}
-                  </span>
-                </div>
-
-                {/* Title */}
-                <h2 className="text-3xl font-bold text-white mb-6 leading-tight">
-                  {displayTitle}
-                </h2>
-
-                {/* Date */}
-                <div className="text-slate-400 mb-6">
-                  {formatDate(timestamp)}
-                </div>
-
-                {/* Full Summary */}
-                <div className="text-slate-200 text-lg leading-relaxed space-y-4 mb-8">
-                  {summary.split('\n').map((paragraph, index) => (
-                    paragraph.trim() && (
-                      <p key={index} className="text-justify">
-                        {paragraph}
-                      </p>
-                    )
-                  ))}
-                </div>
-
-                {/* Sources */}
-                {sourcesList.length > 0 && (
-                  <div className="border-t border-slate-700 pt-6">
-                    <h3 className="text-xl font-semibold text-white mb-4">Sources</h3>
-                    <div className="space-y-3">
-                      {sourcesList.map((source, index) => (
-                        <div key={index} className="bg-slate-800/50 rounded-lg p-4">
-                          {typeof source === 'object' ? (
-                            <>
-                              <h4 className="font-semibold text-blue-300 mb-2">
-                                {source.title || `Source ${index + 1}`}
-                              </h4>
-                              {source.description && (
-                                <p className="text-slate-300 text-sm mb-2">{source.description}</p>
-                              )}
-                              <a
-                                href={source.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 text-sm underline"
-                              >
-                                Read Full Article →
-                              </a>
-                            </>
-                          ) : (
-                            <a
-                              href={source.startsWith('http') ? source : `https://${source}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 underline"
-                            >
-                              {source}
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex items-center justify-between border-t border-slate-700 pt-6 mt-8">
-                  {isAuthenticated && summaryId && (
-                    <button
-                      onClick={handleMarkAsRead}
-                      disabled={hasMarkedAsRead}
-                      className={`px-4 py-2 rounded-full transition-colors font-medium ${
-                        hasMarkedAsRead 
-                          ? 'bg-green-700/50 text-green-300' 
-                          : 'bg-slate-700/50 hover:bg-slate-600/50 text-blue-300'
-                      }`}
-                    >
-                      {hasMarkedAsRead ? '✓ Read' : 'Mark as Read'}
-                    </button>
-                  )}
-                  <button
-                    onClick={handleShare}
-                    className="px-4 py-2 rounded-full bg-slate-700/50 hover:bg-slate-600/50 transition-colors text-blue-300 font-medium"
-                  >
-                    Share Summary
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Regular Card View */}
       <motion.div
         className="h-full"
@@ -253,18 +115,15 @@ const NewsCard = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-      >
-        <div 
-          className={`relative w-full h-full select-none cursor-pointer overflow-hidden transition-all duration-500 card-glow ${
+      >        <div 
+          className={`relative w-full h-full select-none overflow-hidden transition-all duration-500 card-glow ${
             isFlipped ? 'shadow-2xl' : 'hover:shadow-xl'
           } ${isFlipping ? 'pointer-events-none' : ''}`} 
-          onClick={handleCardClick}
           style={{ 
             minHeight: '380px',
             perspective: '1000px',
             borderRadius: '20px'
           }}
-          title="Click to enlarge and read full summary"
         >
           {/* Flip loading indicator */}
           {isFlipping && (
@@ -283,22 +142,10 @@ const NewsCard = ({
               borderRadius: '20px',
               transformStyle: 'preserve-3d'
             }}
-          >
-            {/* Topic Badge */}
-            <div className="relative mb-4 flex items-center justify-between">
-              <div className="relative">
-                <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg">
-                  {topic}
-                </span>
-              </div>
-              
-              {/* Expand indicator */}
-              <div className="flex items-center space-x-1 bg-slate-700/30 backdrop-blur-sm rounded-full px-2 py-1 opacity-60 hover:opacity-100 transition-opacity">
-                <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-                <span className="text-xs text-blue-300 font-medium">Expand</span>
-              </div>
+          >            <div className="relative mb-4">
+              <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg">
+                {topic}
+              </span>
             </div>
             
             {/* Title */}

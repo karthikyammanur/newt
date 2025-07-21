@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 
 /**
  * Custom hook to handle animation recovery and prevent glitching
- * in card components with flip and enlargement animations
+ * in card components with flip animations
  */
 const useAnimationRecovery = () => {
   const animationStateRef = useRef({

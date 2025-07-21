@@ -1,9 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { lockBodyScroll, unlockBodyScroll } from '../utils/scrollLockUtils';
 import './CardAnimations.css';
 import useAnimationRecovery from '../hooks/useAnimationRecovery';
-import './CardAnimations.css';
 
 const FixedSummaryCard = ({ 
   topic, 
@@ -14,59 +12,16 @@ const FixedSummaryCard = ({
   summaryId = null 
 }) => {  const [isFlipped, setIsFlipped] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [isEnlarged, setIsEnlarged] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   
   // Single ref for preventing rapid clicks
-  const isProcessingRef = useRef(false);
-  const flipTimerRef = useRef(null);
-
-  const handleCardClick = useCallback((e) => {
-    // Prevent if clicking on interactive elements
-    const isInteractive = e.target.closest('button') || e.target.closest('a') || e.target.closest('[role="button"]');
-    if (isInteractive) {
-      e.stopPropagation();
-      return;
-    }
-    
-    // Prevent if already processing, enlarged, or flipping
-    if (isProcessingRef.current || isEnlarged || isFlipping || isAnimating) {
-      e.stopPropagation();
-      return;
-    }
-    
-    e.stopPropagation();
-    
-    // Set processing lock
-    isProcessingRef.current = true;
-    setIsAnimating(true);
-    
-    // Lock body scroll immediately
-    lockBodyScroll();
-    
-    // If flipped, reset to front before enlarging
-    if (isFlipped) {
-      setIsFlipped(false);
-      // Wait for flip animation, then enlarge
-      setTimeout(() => {
-        if (isProcessingRef.current) {
-          setIsEnlarged(true);
-          setIsAnimating(false);
-          isProcessingRef.current = false;
-        }
-      }, 600); // Wait for flip animation to complete
-    } else {
-      // Direct enlargement
-      setIsEnlarged(true);
-      setIsAnimating(false);
-      isProcessingRef.current = false;
-    }
-  }, [isEnlarged, isFlipped, isFlipping, isAnimating]);  const handleFlip = useCallback((e) => {
+  const isProcessingRef = useRef(false);  const flipTimerRef = useRef(null);
+  const handleFlip = useCallback((e) => {
     e.stopPropagation();
     e.preventDefault();
     
-    // Prevent flipping when enlarged, already flipping, or processing
-    if (isFlipping || isEnlarged || isProcessingRef.current || isAnimating) return;
+    // Prevent flipping when already flipping or processing
+    if (isFlipping || isProcessingRef.current || isAnimating) return;
     
     // Set processing lock and flipping state
     isProcessingRef.current = true;
@@ -87,48 +42,10 @@ const FixedSummaryCard = ({
         isProcessingRef.current = false;
       }, 600); // Match CSS transition duration
     }, 50); // Small delay for smooth animation start
-  }, [isFlipping, isEnlarged, isAnimating]);  const handleCloseEnlarged = useCallback((e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
-    // Prevent multiple close attempts
-    if (isProcessingRef.current || !isEnlarged) return;
-    
-    // Set processing lock
-    isProcessingRef.current = true;
-    setIsAnimating(true);
-    
-    // Close the enlarged view
-    setIsEnlarged(false);
-    
-    // Reset card state and unlock scroll after animation
-    setTimeout(() => {
-      setIsFlipped(false);
-      setIsFlipping(false);
-      setIsAnimating(false);
-      unlockBodyScroll();
-      isProcessingRef.current = false;
-    }, 400); // Wait for exit animation
-  }, [isEnlarged]);
-  // Handle scroll lock when enlarged state changes
-  useEffect(() => {
-    if (isEnlarged) {
-      lockBodyScroll();
-    } else {
-      // Small delay to ensure smooth transition
-      const timer = setTimeout(() => {
-        unlockBodyScroll();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isEnlarged]);
-  
+  }, [isFlipping, isAnimating]);  
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      unlockBodyScroll();
       if (flipTimerRef.current) {
         clearTimeout(flipTimerRef.current);
       }
@@ -160,124 +77,24 @@ const FixedSummaryCard = ({
   // Title logic: fallback and truncation
   let displayTitle = title && title.trim() ? title.trim() : 'Untitled Summary';
   if (displayTitle.length > 80) {
-    displayTitle = displayTitle.slice(0, 77) + '...';
-  }  return (    <>      {/* Enlarged Modal View */}
-      <AnimatePresence mode="wait">
-        {isEnlarged && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={handleCloseEnlarged}
-            style={{ 
-              isolation: 'isolate',
-              pointerEvents: isAnimating ? 'none' : 'auto'
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: -10 }}
-              transition={{ 
-                type: "spring", 
-                damping: 30,
-                stiffness: 400,
-                mass: 0.8
-              }}
-              className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-              style={{ 
-                borderRadius: '24px',
-                pointerEvents: 'auto'
-              }}
-            >              {/* Close button */}
-              <button
-                onClick={handleCloseEnlarged}
-                disabled={isAnimating}
-                className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/40 transition-colors disabled:opacity-50"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+    displayTitle = displayTitle.slice(0, 77) + '...';  }
 
-              {/* Enlarged content */}
-              <div className="p-8 bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 border border-slate-700 overflow-y-auto h-full rounded-3xl">
-                {/* Topic Badge */}
-                <div className="relative mb-6 flex items-center justify-between">
-                  <span className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold rounded-full uppercase tracking-wider shadow-lg">
-                    {topic || 'General'}
-                  </span>
-                  <div className="text-sm text-slate-400">
-                    {new Date(timestamp).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-
-                {/* Title */}
-                <h2 className="text-3xl font-bold text-white mb-6 leading-tight">
-                  {displayTitle}
-                </h2>
-
-                {/* Full Summary */}
-                <div className="text-slate-200 text-lg leading-relaxed space-y-4 mb-8">
-                  {summary.split('\n').map((paragraph, index) => (
-                    <p key={index} className="text-justify">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-
-                {/* Sources section */}
-                {sourcesList.length > 0 && (
-                  <div className="border-t border-slate-700 pt-6">
-                    <h3 className="text-xl font-bold text-purple-100 mb-4 flex items-center">
-                      <svg className="w-6 h-6 mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
-                      </svg>
-                      Sources & References
-                    </h3>
-                    <div className="space-y-3">
-                      {sourcesList.map((src, i) => (
-                        <div key={i} className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/50">
-                          <a 
-                            href={src.startsWith('http') ? src : `https://${src}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-purple-300 hover:text-purple-200 transition-colors text-sm leading-relaxed hover:underline"
-                          >
-                            {src}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>      {/* Regular Card View */}
-      <motion.div
+  return (
+    <>
+      {/* Regular Card View */}      <motion.div
         className="h-full"
-        whileHover={!isEnlarged && !isAnimating ? { 
+        whileHover={{ 
           scale: 1.02,
           transition: { duration: 0.2, ease: "easeOut" }
-        } : {}}
+        }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-      >        <div 
-          className={`relative w-full h-full select-none cursor-pointer overflow-hidden transition-all duration-500 card-glow ${
+      >
+        <div 
+          className={`relative w-full h-full select-none overflow-hidden transition-all duration-500 card-glow ${
             isFlipped ? 'shadow-2xl' : 'hover:shadow-xl'
-          } ${isAnimating || isEnlarged ? 'pointer-events-none opacity-0' : ''} card-3d-wrapper`}
-          onClick={handleCardClick}
+          } ${isAnimating ? 'pointer-events-none opacity-0' : ''} card-3d-wrapper`}
           style={{ 
             minHeight: '380px',
             perspective: '1000px',
@@ -285,8 +102,7 @@ const FixedSummaryCard = ({
             contain: 'layout style',
             isolation: 'isolate'
           }}
-          title={isEnlarged ? '' : "Click anywhere on the card to enlarge and read full summary"}
-        >        {/* Front of card */}
+        >{/* Front of card */}
         <div 
           className="absolute inset-0 p-6 bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 border border-slate-700 card-face card-front"
           style={{ 
@@ -296,7 +112,8 @@ const FixedSummaryCard = ({
             borderRadius: '20px',
             transformStyle: 'preserve-3d'
           }}
-        >{/* Topic Badge with enhanced styling */}          <div className="relative mb-4 flex items-center justify-between">
+        >          {/* Topic Badge with enhanced styling */}
+          <div className="relative mb-4 flex items-center justify-between">
             <div className="relative">
               <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg">
                 {topic}
@@ -304,26 +121,15 @@ const FixedSummaryCard = ({
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25"></div>
             </div>
             
-            {/* Expand indicator and sources counter */}
-            <div className="flex items-center space-x-2">
-              {/* Click to expand indicator */}
-              <div className="flex items-center space-x-1 bg-slate-700/30 backdrop-blur-sm rounded-full px-2 py-1 opacity-60 hover:opacity-100 transition-opacity">
-                <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            {/* Sources counter badge */}
+            {sourcesList.length > 0 && (
+              <div className="flex items-center space-x-1 bg-slate-700/50 backdrop-blur-sm rounded-full px-3 py-1">
+                <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="text-xs text-blue-300 font-medium">Expand</span>
+                <span className="text-xs text-blue-300 font-medium">{sourcesList.length}</span>
               </div>
-              
-              {/* Sources counter badge */}
-              {sourcesList.length > 0 && (
-                <div className="flex items-center space-x-1 bg-slate-700/50 backdrop-blur-sm rounded-full px-3 py-1">
-                  <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-xs text-blue-300 font-medium">{sourcesList.length}</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
           
           {/* Title with better typography */}

@@ -117,8 +117,7 @@ const PastSummariesTopicPage = () => {
                           stiffness: 100
                         }}
                         className="h-full transform-gpu"
-                      >
-                        <NewsCard
+                      >                        <NewsCard
                           topic={summary.topic}
                           summary={summary.summary}
                           timestamp={summary.timestamp}
@@ -126,6 +125,7 @@ const PastSummariesTopicPage = () => {
                           sources={summary.sources}
                           summaryId={summary._id}
                           hideSummary={false}
+                          showImages={false}
                         />
                       </motion.div>
                     ))}

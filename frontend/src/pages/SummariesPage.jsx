@@ -139,14 +139,14 @@ const SummariesPage = () => {
                           stiffness: 100
                         }}
                         className="h-full transform-gpu"
-                      >
-                        <NewsCard
+                      >                        <NewsCard
                           topic={summary.topic}
                           summary={summary.summary}
                           timestamp={summary.date}
                           title={summary.title}
                           sources={summary.sources}
                           summaryId={summary._id}
+                          urlToImage={summary.urlToImage}
                         />
                       </motion.div>
                     ))}

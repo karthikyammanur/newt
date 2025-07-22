@@ -23,6 +23,7 @@ def save_summary(topic: str, summary: dict, embedding: list, articles: list):
         "summary": summary.get("summary", ""),
         "title": summary.get("title", topic.title()),
         "sources": summary.get("sources", []),
+        "urlToImage": summary.get("urlToImage", ""),  # Include the image URL
         "embedding": embedding,
         "articles": articles,
         "date": datetime.now(pytz.UTC)  # Use timezone-aware datetime

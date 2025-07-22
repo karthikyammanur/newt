@@ -50,14 +50,14 @@ def fetch_latest_tech_articles(max_articles: int = 50):
         for article in data.get("articles", []):
             # Combine title and content for keyword checking
             full_text = f"{article['title']} {article.get('description', '')} {article.get('content', '')}"
-            
-            # Only include if it's tech-related
+              # Only include if it's tech-related
             if is_tech_related(full_text):
                 articles.append({
                     "title": article["title"],
                     "content": f"{article.get('description', '')}\n{article.get('content', '')}",
                     "url": article["url"],
-                    "published_at": article.get("publishedAt", "")
+                    "published_at": article.get("publishedAt", ""),
+                    "urlToImage": article.get("image", "")  # Include the image URL from GNews API
                 })
         
         print(f"Fetched {len(articles)} tech articles from the last 24 hours")
@@ -214,7 +214,8 @@ def prefetch_and_cache(force=False):
                 "summary": result["summary"],
                 "topic": result["topic"],
                 "date": datetime.now(pytz.UTC),  # Store in UTC using timezone-aware datetime
-                "sources": [article["url"]]
+                "sources": [article["url"]],
+                "urlToImage": article.get("urlToImage", "")  # Include the image URL in the database
             }
             
             # Insert into MongoDB

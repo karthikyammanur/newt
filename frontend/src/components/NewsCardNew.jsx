@@ -3,14 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import SummaryModal from './SummaryModal';
 
-const NewsCard = ({ 
-  topic, 
-  summary, 
-  timestamp, 
-  hideSummary = false, 
-  title = '', 
-  sources = [], 
-  summaryId = null 
+const NewsCard = ({
+  topic,
+  summary,
+  timestamp,
+  hideSummary = false,
+  title = '',
+  sources = [],
+  summaryId = null,
+  urlToImage = ''
 }) => {
   const [showCopiedToast, setShowCopiedToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -28,7 +29,7 @@ const NewsCard = ({
     e.stopPropagation();
     if (isFlipping) return;
     setIsFlipping(true);
-    setIsFlipped(!isFlipped);    setTimeout(() => setIsFlipping(false), 700);
+    setIsFlipped(!isFlipped); setTimeout(() => setIsFlipping(false), 700);
   };
 
   const handleShare = async () => {
@@ -51,7 +52,7 @@ const NewsCard = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
-  
+
   const handleMarkAsRead = async (e) => {
     e.stopPropagation();
     if (!isAuthenticated || !summaryId || hasMarkedAsRead) return;
@@ -59,13 +60,13 @@ const NewsCard = ({
     const result = await markSummaryRead(summaryId);
     if (result.success) {
       setHasMarkedAsRead(true);
-      
+
       if (result.streak && result.streak.updated) {
         setStreakInfo(result.streak);
         setShowStreakUpdate(true);
         setTimeout(() => setShowStreakUpdate(false), 4000);
       }
-      
+
       if (result.pointsEarned > 0) {
         setShowPointsEarned(true);
         setTimeout(() => setShowPointsEarned(false), 3000);
@@ -120,23 +121,22 @@ const NewsCard = ({
       {/* Regular Card View */}
       <motion.div
         className="h-full"
-        whileHover={{ 
+        whileHover={{
           scale: 1.03,
           transition: { duration: 0.3 }
         }}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-      >        <div 
-          className={`relative w-full h-full select-none overflow-hidden transition-all duration-500 card-glow ${
-            isFlipped ? 'shadow-2xl' : 'hover:shadow-xl'
-          } ${isFlipping ? 'pointer-events-none' : ''}`} 
-          style={{ 
-            minHeight: '380px',
-            perspective: '1000px',
-            borderRadius: '20px'
-          }}
-        >
+      >        <div
+        className={`relative w-full h-full select-none overflow-hidden transition-all duration-500 card-glow ${isFlipped ? 'shadow-2xl' : 'hover:shadow-xl'
+          } ${isFlipping ? 'pointer-events-none' : ''}`}
+        style={{
+          minHeight: '380px',
+          perspective: '1000px',
+          borderRadius: '20px'
+        }}
+      >
           {/* Flip loading indicator */}
           {isFlipping && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
@@ -145,9 +145,9 @@ const NewsCard = ({
           )}
 
           {/* Front of card */}
-          <div 
+          <div
             className="absolute inset-0 p-6 bg-gradient-to-br from-slate-800 via-slate-900 to-blue-900 border border-slate-700"
-            style={{ 
+            style={{
               transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
               backfaceVisibility: 'hidden',
               transition: 'transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1)',
@@ -158,10 +158,40 @@ const NewsCard = ({
               <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full uppercase tracking-wider shadow-lg">
                 {topic}
               </span>
-            </div>
-            
+            </div>            {/* Article Image */}
+            {urlToImage && (
+              <div className="mb-4 overflow-hidden rounded-xl">
+                <img
+                  src={urlToImage}
+                  alt={displayTitle || topic}
+                  className={`w-full object-cover rounded-xl transition-all duration-500 ${
+                    isFlipped 
+                      ? 'h-64 object-contain bg-slate-800' 
+                      : 'h-40 object-cover hover:scale-105'
+                  }`}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}            {!urlToImage && (
+              <div className="mb-4 overflow-hidden rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 shadow-lg">
+                <div className={`w-full flex items-center justify-center text-slate-400 transition-all duration-500 ${
+                  isFlipped ? 'h-64' : 'h-40'
+                }`}>
+                  <div className="text-center">
+                    <svg className="w-16 h-16 mx-auto mb-3 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm font-medium text-slate-300">No image available</p>
+                    <p className="text-xs text-slate-500 mt-1">{topic.toUpperCase()}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Title */}
-            <h3 className="text-xl font-bold mb-4 text-white leading-tight" style={{ 
+            <h3 className="text-xl font-bold mb-4 text-white leading-tight" style={{
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
@@ -169,7 +199,7 @@ const NewsCard = ({
             }}>
               {displayTitle}
             </h3>
-            
+
             {/* Timestamp */}
             <div className="flex items-center text-sm text-blue-300 mb-4">
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -177,11 +207,11 @@ const NewsCard = ({
               </svg>
               {formatDate(timestamp)}
             </div>
-              {/* Summary preview */}
+            {/* Summary preview */}
             {!hideSummary && (
-              <div 
-                className="text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group" 
-                style={{ 
+              <div
+                className="text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group"
+                style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 6,
                   WebkitBoxOrient: 'vertical',
@@ -200,7 +230,7 @@ const NewsCard = ({
                 </div>
               </div>
             )}
-            
+
             {/* Action buttons */}
             <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between">
               <button
@@ -212,17 +242,16 @@ const NewsCard = ({
                 </svg>
                 View sources
               </button>
-              
+
               <div className="flex items-center space-x-2">
                 {isAuthenticated && summaryId && (
                   <button
                     onClick={handleMarkAsRead}
                     disabled={hasMarkedAsRead}
-                    className={`p-2 rounded-full transition-colors ${
-                      hasMarkedAsRead 
-                        ? 'bg-green-700/50 text-green-300' 
+                    className={`p-2 rounded-full transition-colors ${hasMarkedAsRead
+                        ? 'bg-green-700/50 text-green-300'
                         : 'bg-slate-700/50 hover:bg-slate-600/50 text-blue-300'
-                    }`}
+                      }`}
                     title={hasMarkedAsRead ? 'Already read (+1 point earned)' : 'Mark as read to earn 1 point'}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -244,9 +273,9 @@ const NewsCard = ({
           </div>
 
           {/* Back of card (sources view) */}
-          <div 
+          <div
             className="absolute inset-0 p-6 bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900 border border-slate-700"
-            style={{ 
+            style={{
               transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
               backfaceVisibility: 'hidden',
               transition: 'transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1)',
@@ -260,15 +289,15 @@ const NewsCard = ({
               </svg>
               <h3 className="text-xl font-bold text-white">Verified Sources</h3>
             </div>
-            
+
             {sourcesList.length > 0 ? (
               <div className="space-y-4 max-h-64 overflow-y-auto">
                 {sourcesList.map((src, i) => (
                   <div key={i} className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-                    <a 
-                      href={src.startsWith('http') ? src : `https://${src}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={src.startsWith('http') ? src : `https://${src}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-slate-200 hover:text-purple-300 transition-colors text-sm"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -282,7 +311,7 @@ const NewsCard = ({
                 <p className="text-sm">No sources available</p>
               </div>
             )}
-            
+
             <div className="absolute bottom-4 right-4">
               <button
                 onClick={handleViewSources}
@@ -356,9 +385,9 @@ const NewsCard = ({
           </motion.div>
         )}
       </AnimatePresence>      {/* Summary Modal */}
-      <SummaryModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
+      <SummaryModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
         topic={topic}
         title={title}
         summary={summary}

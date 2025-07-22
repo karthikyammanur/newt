@@ -40,13 +40,13 @@ def fetch_articles(topic: str, max_articles: int = 5):
     for article in data.get("articles", []):
         #combine title and content for keyword checking
         full_text = f"{article['title']} {article.get('description', '')} {article.get('content', '')}"
-        
-        #only include it if its tech-related
+          #only include it if its tech-related
         if is_tech_related(full_text):
             articles.append({
                 "id": article["url"],
                 "title": article["title"],
-                "content": f"{article.get('description', '')}\n{article.get('content', '')}"
+                "content": f"{article.get('description', '')}\n{article.get('content', '')}",
+                "urlToImage": article.get("image", "")  # Include the image URL from GNews API
             })
             
             if len(articles) >= max_articles:

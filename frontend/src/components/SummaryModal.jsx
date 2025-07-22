@@ -101,7 +101,9 @@ const SummaryModal = ({
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>            {/* Scrollable content */}
+            </button>
+
+            {/* Scrollable content */}
             <div className="overflow-y-auto max-h-[90vh] custom-scrollbar">
               {/* Header */}
               <div className="p-8 pb-6">

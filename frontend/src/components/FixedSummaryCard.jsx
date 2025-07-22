@@ -19,8 +19,7 @@ const FixedSummaryCard = ({
   
   // Single ref for preventing rapid clicks
   const isProcessingRef = useRef(false);
-  const flipTimerRef = useRef(null);
-  const handleFlip = useCallback((e) => {
+  const flipTimerRef = useRef(null);  const handleFlip = useCallback((e) => {
     e.stopPropagation();
     e.preventDefault();
     
@@ -46,7 +45,7 @@ const FixedSummaryCard = ({
         isProcessingRef.current = false;
       }, 600); // Match CSS transition duration
     }, 50); // Small delay for smooth animation start
-  }, [isFlipping, isAnimating]);  
+  }, [isFlipping, isAnimating]);
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -68,14 +67,18 @@ const FixedSummaryCard = ({
       console.error('Invalid date:', err);
       return 'Recent';
     }
-  };
-
-  const handleEnlargeSummary = (e) => {
+  };  const handleEnlargeSummary = (e) => {
+    // Stop all event propagation to prevent conflicts with flip handlers
     e.stopPropagation();
+    e.preventDefault();
+    
+    // Don't open modal if card is flipping or animating
+    if (isFlipping || isAnimating || isProcessingRef.current) {
+      return;
+    }
+    
     setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
+  };  const handleCloseModal = () => {
     setIsModalOpen(false);
   };
 
@@ -144,16 +147,14 @@ const FixedSummaryCard = ({
               </div>
             )}
           </div>
-          
-          {/* Title with better typography */}
+            {/* Title with better typography */}
           <h3 className="text-2xl font-bold mb-4 text-white leading-tight" style={{ 
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}>
-            {displayTitle}
+          }}>            {displayTitle}
           </h3>
           
           {/* Timestamp with icon */}
@@ -162,10 +163,11 @@ const FixedSummaryCard = ({
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
             </svg>
             {formatDate(timestamp)}
-          </div>
-            {/* Summary with better spacing */}
+          </div>          {/* Summary with better spacing */}
           <div 
-            className="text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group" 
+            className={`text-slate-200 text-sm leading-relaxed mb-6 cursor-pointer hover:bg-slate-800/30 rounded-lg p-3 -m-3 transition-colors group ${
+              isFlipping || isAnimating ? 'pointer-events-none opacity-70' : ''
+            }`}
             style={{ 
               display: '-webkit-box',
               WebkitLineClamp: 7,
@@ -174,9 +176,9 @@ const FixedSummaryCard = ({
               lineHeight: '1.6'
             }}
             onClick={handleEnlargeSummary}
-            title="Click to read full summary"
-          >
-            {summary}
+            title={isFlipping || isAnimating ? 'Please wait...' : 'Click to read full summary'}
+            onMouseDown={(e) => e.stopPropagation()} // Prevent any mouse down conflicts
+          >            {summary}
             {/* Enlarge indicator */}
             <div className="mt-2 flex items-center text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,10 +268,8 @@ const FixedSummaryCard = ({
             </svg>            Back to summary
           </button>        </div>
       </div>
-      </motion.div>
-
-      {/* Summary Modal */}
-      <SummaryModal 
+      </motion.div>      {/* Summary Modal */}
+      <SummaryModal
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
         title={title}

@@ -23,13 +23,22 @@ from typing import Optional
 from bson import ObjectId
 import pytz
 from pydantic import BaseModel
+import google.generativeai as genai
+import os
+import asyncio
 
 router = APIRouter()
 
 summaries_collection = db['summaries']
 
+# Configure Gemini API
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 class ReadSummaryRequest(BaseModel):
     summary_id: str
+
+class AskAIRequest(BaseModel):
+    question: str
 
 @router.get("/health")
 async def health_check():
@@ -133,8 +142,7 @@ async def get_summaries(
     
     # Get unique summaries, limit to 3 most recent, unique by title
     recent = list(summaries_collection.find(query).sort("date", -1).limit(10))
-    
-    # Remove duplicates and limit results
+      # Remove duplicates and limit results
     seen_titles = set()
     unique_summaries = []
     for s in recent:
@@ -154,7 +162,8 @@ async def get_summaries(
             "summary": s["summary"],
             "timestamp": s["date"].isoformat() if s.get("date") else None,
             "title": s.get("title", ""),
-            "sources": s.get("sources", [])
+            "sources": s.get("sources", []),
+            "urlToImage": s.get("urlToImage", "")  # Include the image URL in the response
         }
         for s in unique_summaries
     ]
@@ -163,9 +172,9 @@ async def get_summaries(
 async def get_past_summaries(topic: str = None):
     query = {}
     if topic:
-        query["topic"] = topic
-    # Return all summaries for the topic, sorted by date descending
+        query["topic"] = topic    # Return all summaries for the topic, sorted by date descending
     past = list(summaries_collection.find(query).sort("date", -1))
+    
     return [
         {
             "_id": str(s.get("_id")),
@@ -173,7 +182,8 @@ async def get_past_summaries(topic: str = None):
             "summary": s.get("summary"),
             "timestamp": s.get("date").isoformat() if s.get("date") else None,
             "title": s.get("title", ""),
-            "sources": s.get("sources", [])
+            "sources": s.get("sources", []),
+            "urlToImage": s.get("urlToImage", "")  # Include the image URL in the response
         }
         for s in past
     ]
@@ -245,8 +255,7 @@ async def get_todays_summaries():
             }
         ]
     }
-    
-    # Get today's summaries, sorted by timestamp (latest first)
+      # Get today's summaries, sorted by timestamp (latest first)
     todays_summaries = list(summaries_collection.find(query).sort("date", -1))
     
     return [
@@ -256,7 +265,8 @@ async def get_todays_summaries():
             "summary": s.get("summary", ""),
             "topic": s.get("topic", ""),
             "date": s.get("date").isoformat() if s.get("date") else None,
-            "sources": s.get("sources", [])
+            "sources": s.get("sources", []),
+            "urlToImage": s.get("urlToImage", "")  # Include the image URL in the response
         }
         for s in todays_summaries
     ]
@@ -381,6 +391,90 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve dashboard analytics: {str(e)}"
+        )
+
+@router.post("/ask-ai")
+async def ask_ai(
+    request: AskAIRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Ask AI assistant questions about news summaries and app functionality.
+    The AI has access to user's liked topics and reading history.
+    """
+    try:
+        user_id = current_user["user_id"]
+        
+        # Get user context for personalized responses
+        liked_articles = get_liked_articles(user_id)
+        top_topics = get_user_top_topics(user_id, limit=5)
+        user_stats = get_user_stats(user_id)
+        
+        # Build context about user's preferences
+        user_context = f"""
+User Profile:
+- Total summaries read: {user_stats.get('total_summaries_read', 0)}
+- Current points: {user_stats.get('points', 0)}
+- Top reading topics: {', '.join([topic['topic'] for topic in top_topics[:3]]) if top_topics else 'None yet'}
+- Number of liked articles: {len(liked_articles)}
+"""
+        
+        # System prompt for the AI assistant
+        system_prompt = f"""You are an assistant for a news summarization app called "newt". You only answer questions based on the user's liked topics, summaries, and the app's functionality. 
+
+{user_context}
+
+About the app:
+- newt provides AI-generated daily tech news summaries
+- Users earn points for reading summaries and can build reading streaks
+- Users can like/unlike articles and follow other users
+- The app covers topics like AI, Machine Learning, Cybersecurity, Cloud Computing, Software Engineering, Data Science, Hardware, Startups, Web Development, and more
+- Users get personalized feeds based on their reading history
+
+Answer the user's question helpfully and concisely. If the question is not related to news summaries, reading habits, or app functionality, politely redirect them to ask about topics you can help with."""
+
+        # Prepare the full prompt
+        full_prompt = f"{system_prompt}\n\nUser Question: {request.question}"
+        
+        # Call Gemini API with timeout
+        model = genai.GenerativeModel("models/gemini-1.5-flash")
+        
+        # Use asyncio timeout for the API call
+        try:
+            response = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, 
+                    lambda: model.generate_content(
+                        full_prompt,
+                        generation_config=genai.types.GenerationConfig(
+                            max_output_tokens=500,
+                            temperature=0.7,
+                        )
+                    )
+                ),
+                timeout=10.0  # 10 second timeout
+            )
+            
+            ai_response = response.text.strip()
+            
+            return {
+                "response": ai_response
+            }
+            
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=status.HTTP_408_REQUEST_TIMEOUT,
+                detail="AI service is taking too long to respond. Please try again."
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Log the actual error for debugging but return a generic message
+        print(f"AI API Error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="AI service is currently unavailable. Please try again later."
         )
 
 # Follow/Unfollow Endpoints

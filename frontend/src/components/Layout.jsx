@@ -39,6 +39,9 @@ const Layout = ({ children, isLandingPage = false }) => {
                   <Link to="/today" className="text-sm font-medium text-slate-200 hover:text-blue-300 transition-colors px-3 py-1 rounded-full hover:bg-slate-700/50">
                     Today's Summaries
                   </Link>
+                  <Link to="/reels" className="text-sm font-medium text-slate-200 hover:text-blue-300 transition-colors px-3 py-1 rounded-full hover:bg-slate-700/50">
+                    Reels
+                  </Link>
                   <Link to="/discover" className="text-sm font-medium text-slate-200 hover:text-blue-300 transition-colors px-3 py-1 rounded-full hover:bg-slate-700/50">
                     Discover
                   </Link>

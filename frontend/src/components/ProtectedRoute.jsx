@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ChatButton from './ChatButton';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -23,8 +24,13 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/join" state={{ from: location }} replace />;
   }
   
-  // If authenticated, render the protected component
-  return children;
+  // If authenticated, render the protected component with chat button
+  return (
+    <div className="relative">
+      {children}
+      <ChatButton />
+    </div>
+  );
 };
 
 export default ProtectedRoute;

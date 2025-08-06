@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import NewsCard from '../components/NewsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -8,6 +9,7 @@ const SummariesPage = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoading(true);
@@ -53,26 +55,41 @@ const SummariesPage = () => {
                   Fresh summaries updated daily with the latest technology news and insights
                 </p>
                 
-                {/* Stats bar */}
+                {/* Stats bar and Reel View Button */}
                 {summaries?.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
-                    className="mt-8 inline-flex items-center space-x-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-full px-6 py-3"
+                    className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
                   >
-                    <div className="flex items-center text-sm text-slate-300">
-                      <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      {summaries.length} Summaries Available
+                    <div className="inline-flex items-center space-x-6 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-full px-6 py-3">
+                      <div className="flex items-center text-sm text-slate-300">
+                        <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        {summaries.length} Summaries Available
+                      </div>
+                      <div className="flex items-center text-sm text-slate-300">
+                        <svg className="w-5 h-5 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                        Updated Today
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-slate-300">
-                      <svg className="w-5 h-5 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    
+                    {/* Reel View Button */}
+                    <motion.button
+                      onClick={() => navigate('/reels')}
+                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-full transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM5 8a1 1 0 000 2h8a1 1 0 100-2H5z" />
                       </svg>
-                      Updated Today
-                    </div>
+                      View as Reels
+                    </motion.button>
                   </motion.div>
                 )}
               </motion.div>              {isLoading ? (

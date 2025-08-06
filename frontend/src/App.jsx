@@ -16,6 +16,7 @@ import JoinPage from './pages/JoinPage';
 // Protected Pages
 import SummariesPage from './pages/SummariesPage';
 import TodayPage from './pages/TodayPage';
+import ReelsPage from './pages/ReelsPage';
 import PastSummariesPage from './pages/PastSummariesPage';
 import PastSummariesTopicPage from './pages/PastSummariesTopicPage';
 import Dashboard from './pages/Dashboard';
@@ -63,6 +64,11 @@ function App() {
               } />              <Route path="/today" element={
                 <ProtectedRoute>
                   <TodayPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/reels" element={
+                <ProtectedRoute>
+                  <ReelsPage />
                 </ProtectedRoute>
               } />
               <Route path="/past-summaries" element={

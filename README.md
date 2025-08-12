@@ -1,6 +1,13 @@
+<p>NOTE: THIS PROJECT IS STILL IN THE PROCESS OF DEPLOYMENT. ONCE COMPLETED THIS README WILL BE UPDATED AND THE LIVE URL WILL BE VISIBLE HERE</p>
+
 <div align="center">
+<<<<<<< HEAD
   <h1>📰 AI News Summarizer</h1>
   <p>Full-stack news summary application with AI-powered backend and modern React frontend.</p>
+=======
+  <h1>📰 NEWT</h1>
+  <p>Full-screen, news summary viewer with AI-powered backend and modern React frontend.</p>
+>>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
   <img src="frontend/public/favicon.ico" width="64" alt="Logo" />
   
   <p><strong>⚠️ NOTICE: This project is still under active development and is not fully deployed yet.</strong></p>
@@ -8,24 +15,12 @@
 
 ---
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Setup & Installation](#setup--installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
 
 ---
 
 ## Overview
 
-**AI News Summarizer** is a modern web application that delivers daily news summaries in a visually engaging, full-screen, vertically-scrollable reel format (like YouTube Shorts/Reels). It features:
+**NEWT** is a modern web application that delivers daily news summaries in a visually engaging display. It features:
 
 - AI-powered news summarization (mocked for local dev)
 - JWT-based authentication
@@ -36,10 +31,15 @@
 
 ## Features
 
+<<<<<<< HEAD
 - 🧠 **AI Summarization**: Daily tech news summarized by AI
 - 🔐 **JWT Auth**: Secure login/register with user profiles
 - 👥 **Social Features**: Follow other users and build your network
 - � **AI Chat Assistant**: Ask questions about news or your reading habits
+=======
+- 🧠 **AI Summarization**: (RAG Model)
+- 🔐 **JWT Auth**: Secure login/register
+>>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
 - 🖥️ **Modern UI**: Tailwind CSS, Framer Motion, SPA navigation
 - 📱 **Responsive**: Works on desktop and mobile
 - 📝 **API Docs**: Easy-to-use REST endpoints
@@ -47,6 +47,7 @@
 
 ---
 
+<<<<<<< HEAD
 ## Architecture
 
 ```
@@ -248,6 +249,8 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
+=======
+>>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
 <div align="center">
   <p>Project Status: <strong>Under Active Development</strong></p>
   <sub>Made by Karthik Yammanur.</sub>

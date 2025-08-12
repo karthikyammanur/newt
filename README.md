@@ -1,26 +1,31 @@
-<p>NOTE: THIS PROJECT IS STILL IN THE PROCESS OF DEPLOYMENT. ONCE COMPLETED THIS README WILL BE UPDATED AND THE LIVE URL WILL BE VISIBLE HERE</p>
-
 <div align="center">
-<<<<<<< HEAD
   <h1>📰 AI News Summarizer</h1>
-  <p>Full-stack news summary application with AI-powered backend and modern React frontend.</p>
-=======
-  <h1>📰 NEWT</h1>
-  <p>Full-screen, news summary viewer with AI-powered backend and modern React frontend.</p>
->>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
+  <p>Full-screen, reel-style news summary viewer with AI-powered backend and modern React frontend.</p>
   <img src="frontend/public/favicon.ico" width="64" alt="Logo" />
-  
-  <p><strong>⚠️ NOTICE: This project is still under active development and is not fully deployed yet.</strong></p>
+  <br />
+  <strong>⚠️ NOTE: This project is still under active development and is not fully deployed. Some features may be incomplete or subject to change.</strong>
 </div>
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Setup & Installation](#setup--installation)
+- [Usage](#usage)
+- [API Endpoints](#api-endpoints)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
 ## Overview
 
-**NEWT** is a modern web application that delivers daily news summaries in a visually engaging display. It features:
+**AI News Summarizer** is a modern web application that delivers daily news summaries in a visually engaging, full-screen, vertically-scrollable reel format (like YouTube Shorts/Reels). It features:
 
 - AI-powered news summarization (mocked for local dev)
 - JWT-based authentication
@@ -31,42 +36,39 @@
 
 ## Features
 
-<<<<<<< HEAD
-- 🧠 **AI Summarization**: Daily tech news summarized by AI
+- 🧠 **AI Summarization**: Daily tech news summaries with manual generation option
 - 🔐 **JWT Auth**: Secure login/register with user profiles
-- 👥 **Social Features**: Follow other users and build your network
-- � **AI Chat Assistant**: Ask questions about news or your reading habits
-=======
-- 🧠 **AI Summarization**: (RAG Model)
-- 🔐 **JWT Auth**: Secure login/register
->>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
+- � **AI Chat Assistant**: Interactive chatbot for questions about news and reading habits
+- 📱 **Responsive Design**: Works seamlessly on desktop and mobile
+- 📊 **User Dashboard**: Track reading habits and engagement
+- � **Social Features**: Follow other users and build a network
 - 🖥️ **Modern UI**: Tailwind CSS, Framer Motion, SPA navigation
-- 📱 **Responsive**: Works on desktop and mobile
 - 📝 **API Docs**: Easy-to-use REST endpoints
-- 📊 **User Analytics**: Track reading habits and streaks
 
 ---
 
-<<<<<<< HEAD
 ## Architecture
 
 ```
 frontend/ (React, Vite, Tailwind, Framer Motion)
   └── src/
       ├── components/
-      │   └── AccordionSummaryCard.jsx
+      │   ├── Layout.jsx
+      │   ├── AccordionSummaryCard.jsx
+      │   └── ChatModal.tsx
       ├── pages/
       │   ├── TodayPage.jsx
       │   ├── SummariesPage.jsx
-      │   └── ProfilePage.jsx
+      │   ├── FollowersPage.jsx
+      │   └── FollowingPage.jsx
       └── context/AuthContext.jsx
-backend/ (FastAPI, Python 3.12, Uvicorn, ChromaDB)
+backend/ (FastAPI, Python 3.12, MongoDB)
   ├── simple_server.py (mock endpoints for dev)
-  ├── generate_summaries.py (manual summary generation)
-  └── app/
-      ├── api/routes.py
-      ├── core/auth.py
-      └── ...
+  ├── app/
+  │   ├── api/routes.py
+  │   ├── core/auth.py
+  │   └── db/mongodb.py
+  └── chromadb/ (vector database for AI)
 ```
 
 ---
@@ -77,8 +79,7 @@ backend/ (FastAPI, Python 3.12, Uvicorn, ChromaDB)
 
 - Node.js (v18+ recommended)
 - Python 3.12+
-- MongoDB for user data storage
-- Google Gemini API key for AI features
+- (Optional) MongoDB for production
 
 ### 1. Clone the Repository
 
@@ -94,151 +95,101 @@ cd frontend
 npm install
 ```
 
-### 3. Backend Setup
+### 3. Backend Setup (Mock Server for Dev)
 
 ```sh
 cd ../backend
 python -m venv venv_backend
 venv_backend\Scripts\activate  # On Windows
-# For Mac/Linux: source venv_backend/bin/activate
-pip install -r requirements.txt  # If available
-# Or install the basic requirements:
-pip install fastapi uvicorn pymongo python-multipart python-jose[cryptography] passlib bcrypt google-generativeai
+pip install fastapi uvicorn python-multipart
 ```
 
-### 4. Environment Setup
-
-Create a `.env` file in the backend directory:
-
-```
-MONGODB_URI=your_mongodb_connection_string
-SECRET_KEY=your_jwt_secret_key
-GEMINI_API_KEY=your_gemini_api_key  # For AI chat features
-```
-
-### 5. Start the Backend
-
-For development with mock data:
+### 4. Start the Backend (Mock Server)
 
 ```sh
-cd backend
 python simple_server.py
 ```
 
-For full functionality:
+### 5. Start the Frontend
 
 ```sh
-cd backend
-uvicorn app.main:app --reload
-```
-
-### 6. Start the Frontend
-
-```sh
-cd frontend
+cd ../frontend
 npm run dev
 ```
-
-### 7. Generate Summaries (Manual)
-
-If automatic cron job isn't working, you can manually generate summaries:
-
-```sh
-cd backend
-python generate_summaries.py
-```
-
-Or use the "Generate New Summaries" button on the Today page.
 
 ---
 
 ## Usage
 
 - Open [http://localhost:5173](http://localhost:5173) in your browser.
-- Register a new account or **login with test credentials:**
+- **Login with test credentials:**
   - **Username:** `testuser`
   - **Password:** `testpass`
-- Browse daily news summaries on the Today page
-- View your profile and analytics on the Profile page
-- Follow other users to build your network
-- Use the AI chat assistant to ask questions about news or your reading habits
-- Manually generate new summaries if needed using the button on the Today page
+- View today's news summaries on the home page.
+- **Generate New Summaries:** Click the "Generate New Summaries" button on the Today page to manually create new content if the cron job isn't working.
+- **Dashboard:** Check your reading stats and engagement metrics.
+- **Social:** Follow other users and see your followers/following lists.
+- **Chat Assistant:** Use the floating chat button to ask questions about news, your reading habits, or app features.
 
 ---
 
 ## API Endpoints
 
-| Endpoint                        | Method | Description                      |
-| ------------------------------- | ------ | -------------------------------- |
-| `/api/auth/login`               | POST   | Login (form: username, password) |
-| `/api/auth/register`            | POST   | Register new user                |
-| `/api/auth/me`                  | GET    | Get current user info            |
-| `/api/summaries/today`          | GET    | Get today's news summaries       |
-| `/api/summaries/generate`       | POST   | Manually generate new summaries  |
-| `/api/summaries/{id}`           | GET    | Get summary by ID                |
-| `/api/user/{user_id}/profile`   | GET    | Get user profile                 |
-| `/api/user/{user_id}/followers` | GET    | Get user's followers             |
-| `/api/user/{user_id}/following` | GET    | Get user's following list        |
-| `/api/follow/{user_id}`         | POST   | Follow a user                    |
-| `/api/unfollow/{user_id}`       | POST   | Unfollow a user                  |
-| `/api/ask-ai`                   | POST   | Ask the AI chat assistant        |
-| `/api/dashboard`                | GET    | Get user dashboard analytics     |
+| Endpoint                   | Method | Description                      |
+| -------------------------- | ------ | -------------------------------- |
+| `/api/auth/login`          | POST   | Login (form: username, password) |
+| `/api/auth/register`       | POST   | Register new user                |
+| `/api/auth/me`             | GET    | Get current user info            |
+| `/api/summaries/today`     | GET    | Get today's news summaries       |
+| `/api/summaries/generate`  | POST   | Manually generate new summaries  |
+| `/api/summaries/{id}`      | GET    | Get summary by ID                |
+| `/api/summaries/{id}/read` | POST   | Mark summary as read             |
+| `/api/ask-ai`              | POST   | Ask the AI assistant a question  |
+| `/api/user/{id}/followers` | GET    | Get user's followers             |
+| `/api/user/{id}/following` | GET    | Get users followed by a user     |
+| `/api/follow/{id}`         | POST   | Follow a user                    |
+| `/api/unfollow/{id}`       | POST   | Unfollow a user                  |
+| `/api/dashboard`           | GET    | Get user dashboard analytics     |
 
 ---
 
 ## Development
 
 - **Frontend:**
-  - Main components: `TodayPage.jsx`, `ProfilePage.jsx`, `FollowersPage.jsx`, `ChatModal.tsx`
+  - Main components in `frontend/src/components/`
+  - Page components in `frontend/src/pages/`
   - Auth logic in `frontend/src/context/AuthContext.jsx`
   - Styles: Tailwind CSS, animations: Framer Motion
 - **Backend:**
-  - Mock server: `backend/simple_server.py`
-  - Full API: `backend/app/api/routes.py`
-  - Database: MongoDB via `backend/app/db/mongodb.py`
-  - Manual summary generation: `generate_summaries.py`
+  - Mock server: `backend/simple_server.py` (for development without dependencies)
+  - Real endpoints: `backend/app/api/routes.py`
+  - Database connectors: `backend/app/db/mongodb.py`
+  - AI utilities: `backend/app/utils/`
+- **Manual Summary Generation:**
+
+  - If cron job is not working, use the "Generate New Summaries" button on the Today page
+  - Alternatively, run `python generate_summaries.py` from the project root
+
 - **Test Credentials:** See [Usage](#usage)
 
 ---
 
 ## Troubleshooting
 
-- **Backend not starting?**
-
-  - Ensure you are using the correct Python environment.
-  - Check if all required packages are installed.
-  - Verify MongoDB connection if using the full backend.
-  - Make sure environment variables are properly set.
-
-- **Summaries not updating?**
-
-  - The cron job may not be working. Use the "Generate New Summaries" button on the Today page or run `python generate_summaries.py` manually.
-
-- **Login/network errors?**
-
-  - For development, use the mock server (`simple_server.py`) and test credentials.
-  - Check that your JWT secret is properly configured.
-
-- **AI Chat not working?**
-
-  - Verify your GEMINI_API_KEY is correctly set in the environment variables.
-  - Check if the `/api/ask-ai` endpoint is properly implemented and accessible.
-
-- **Followers/Following pages showing errors?**
-
-  - Ensure the MongoDB database has the proper user collections and relationships set up.
-  - Verify the user authentication is working correctly.
-
-- **CORS issues?**
-  - CORS is enabled in both servers for local dev.
-  - If needed, add additional allowed origins in the CORS middleware configuration.
+- **Backend not starting?** Ensure you are in the `backend` folder and using the correct Python environment.
+- **Login/network errors?** Use the mock server (`simple_server.py`) and test credentials.
+- **AI summarization not working?** Try using the "Generate New Summaries" button on the Today page or run `python generate_summaries.py` manually.
+- **Chatbot not responding?** Ensure the GEMINI_API_KEY environment variable is set correctly.
+- **Followers/Following pages empty?** Make sure you're logged in and the backend is running correctly.
+- **CORS issues?** CORS is enabled in both the real and mock servers for local development.
+- **Chat textbox issues?** If the chat closes when typing, make sure you're using the latest version with event propagation fixes.
 
 ---
 
 ## Contributing
 
 1. Fork the repo and create a feature branch.
-2. Make your changes.
+2. Make your changes (see `frontend/src/components/ReelViewer.jsx` for UI, `backend/simple_server.py` for backend).
 3. Submit a pull request with a clear description.
 
 ---
@@ -249,9 +200,6 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-=======
->>>>>>> 85c4a81df51e86c9cad07eaccc8ac85d7b88f55c
 <div align="center">
-  <p>Project Status: <strong>Under Active Development</strong></p>
-  <sub>Made by Karthik Yammanur.</sub>
+  <sub>Made with ❤️ by Karthik Yammanur and contributors.</sub>
 </div>

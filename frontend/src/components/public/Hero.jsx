@@ -20,7 +20,7 @@ const Hero = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7 }}
         >
-          Plan smarter. <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">Just ask.</span>
+          Catch up <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600">in a click.</span>
         </motion.h1>
         
         <motion.p 

@@ -1,4 +1,7 @@
 <h1 align="center">🐸 newt</h1>
+<p align="center">
+  <img src="./newt_gif.gif" alt="Newt Demo" width="600"/>
+</p>
 
 <p align="center">
 Newt is a modern web application that delivers daily tech news summaries in an engaging, full-screen reel-style format similar to YouTube Shorts or Instagram Reels. Built for busy professionals and tech enthusiasts, Newt uses AI-powered summarization to help you stay informed about the latest technology developments without the information overload. Instead of browsing multiple news sources and spending hours reading articles, users can catch up on everything important in just a few minutes with personalized AI-curated summaries.

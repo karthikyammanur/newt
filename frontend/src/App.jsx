@@ -13,8 +13,7 @@ import AboutPage from './pages/AboutPage';
 import ComingSoon from './pages/public/ComingSoon';
 
 // Protected Pages
-impo
-rt SummariesPage from './pages/SummariesPage';
+import SummariesPage from './pages/SummariesPage';
 import TodayPage from './pages/TodayPage';
 
 import PastSummariesPage from './pages/PastSummariesPage';

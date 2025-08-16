@@ -3,6 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 # Temporarily disable summarizer import due to PyTorch issues
 # from app.utils.summarizer import summarize_topic
 from app.utils.news_fetcher import fetch_articles, TECH_KEYWORDS
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("api_routes")
 
 # Temporary placeholder function
 def summarize_topic(topic):
@@ -59,6 +68,9 @@ class ReadSummaryRequest(BaseModel):
 class AIAgentRequest(BaseModel):
     input: str
 
+class AskAIRequest(BaseModel):
+    question: str
+
 @router.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -76,31 +88,54 @@ def mongodb_health_check():
 
 @router.post("/auth/register", response_model=Token)
 async def register(user: UserCreate):
+    logger.info(f"Registration attempt for user: {user.email}")
     # Check if user already exists
     existing_user = get_user_by_email(user.email)
     if existing_user:
+        logger.warning(f"Registration failed - email already exists: {user.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
-    # Create new user
-    hashed_password = get_password_hash(user.password)
-    new_user = create_user(user.email, hashed_password)
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email, "user_id": new_user["user_id"]}, 
-        expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    try:
+        # Create new user with proper password hashing
+        hashed_password = get_password_hash(user.password)
+        new_user = create_user(user.email, hashed_password)
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email, "user_id": new_user["user_id"]}, 
+            expires_delta=access_token_expires
+        )
+        
+        logger.info(f"Registration successful for user: {user.email}")
+        return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        logger.error(f"Registration error for {user.email}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error creating user account"
+        )
 
 @router.post("/auth/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    logger.info(f"Login attempt for user: {form_data.username}")
+    
     # Get user by email
     user = get_user_by_email(form_data.username)
-    if not user or not verify_password(form_data.password, user["hashed_password"]):
+    if not user:
+        logger.warning(f"Login failed - user not found: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify password
+    if not verify_password(form_data.password, user["hashed_password"]):
+        logger.warning(f"Login failed - incorrect password for user: {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -113,6 +148,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         data={"sub": user["email"], "user_id": user["user_id"]}, 
         expires_delta=access_token_expires
     )
+    
+    logger.info(f"Login successful for user: {form_data.username}")
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.post("/summarize")
@@ -210,6 +247,85 @@ async def get_user_liked_topics_context(user_id: str):
             "recently_liked_topics": [],
             "total_liked_articles": 0
         }
+
+@router.post("/ask-ai")
+async def ask_ai(
+    request: AskAIRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    AI chat endpoint for the chat modal - simpler interface than the ai-agent endpoint
+    """
+    print(f"[ASK-AI] === NEW REQUEST STARTED ===")
+    print(f"[ASK-AI] Request received with question: {request.question[:50]}...")
+    
+    try:
+        question = request.question.strip()
+        if not question:
+            print("[ASK-AI] Error: Empty question")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Question cannot be empty"
+            )
+        
+        user_id = current_user["user_id"]
+        
+        # Get today's summaries for context
+        todays_summaries = await get_todays_summaries_for_ai()
+        
+        # Build prompt for Gemini
+        system_prompt = "You are Newt AI, a helpful assistant for a news summarization app. Keep your responses conversational, friendly, and concise (under 200 words). You help users understand today's news, their reading habits, and how to use the app."
+        
+        # Add summaries context if available
+        news_context = ""
+        if todays_summaries:
+            news_context = "\n\nToday's top news topics: "
+            news_context += ", ".join([s.get("topic", "Unknown topic") for s in todays_summaries[:5]])
+            
+            # Add a brief summary of the first few articles
+            news_context += "\n\nHighlights from today's news:\n"
+            for i, summary in enumerate(todays_summaries[:2], 1):
+                news_context += f"- {summary.get('title', f'Topic: {summary.get('topic', 'Unknown')}')}.\n"
+        
+        # Complete prompt
+        full_prompt = f"{system_prompt}{news_context}\n\nUser: {question}\n\nNewt AI:"
+        
+        print("[ASK-AI] Calling Gemini API...")
+        # Call Gemini API
+        try:
+            gemini_api_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_api_key:
+                print("[ASK-AI] Error: GEMINI_API_KEY not configured")
+                raise Exception("GEMINI_API_KEY not configured")
+                
+            model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+            response = model.generate_content(full_prompt)
+            
+            if response and response.text:
+                ai_response = response.text.strip()
+                print(f"[ASK-AI] Gemini response received: {ai_response[:100]}...")
+            else:
+                print("[ASK-AI] Gemini response empty")
+                ai_response = "I apologize, but I couldn't generate a response right now. Please try again in a moment."
+                
+        except Exception as gemini_error:
+            print(f"[ASK-AI] Gemini API error: {gemini_error}")
+            ai_response = "I'm currently having trouble connecting to my AI systems. Please try again in a moment, or check out the latest summaries in the app!"
+        
+        return {
+            "response": ai_response
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ASK-AI] Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="I'm having trouble connecting right now. Please try again in a moment."
+        )
 
 @router.post("/ai-agent")
 async def ai_agent(
@@ -445,6 +561,43 @@ async def get_likes(token: str = Depends(oauth2_scheme)):
     liked = get_liked_articles(user_id)
     return {"liked": liked}
 
+@router.post("/summaries/generate")
+async def generate_summaries():
+    """Manually trigger the generation of summaries"""
+    try:
+        # Import the function to generate summaries
+        from app.utils.prefetch_job import prefetch_and_cache, check_todays_summaries
+        
+        # Check if summaries already exist for today
+        existing_count = check_todays_summaries()
+        
+        if existing_count > 0:
+            return {
+                "success": False,
+                "message": f"Summaries already exist for today ({existing_count} found)",
+                "count": existing_count
+            }
+        
+        # Generate new summaries
+        result = prefetch_and_cache(force=True)
+        
+        # Check how many were generated
+        new_count = check_todays_summaries()
+        
+        return {
+            "success": True,
+            "message": f"Successfully generated {new_count} summaries",
+            "count": new_count
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {
+            "success": False,
+            "message": f"Error generating summaries: {str(e)}",
+            "error_details": error_details
+        }
+
 @router.get("/summaries/today")
 async def get_todays_summaries():
     """Get all summaries generated for the current day (Central Time)"""
@@ -485,6 +638,21 @@ async def get_todays_summaries():
       # Get today's summaries, sorted by timestamp (latest first)
     todays_summaries = list(summaries_collection.find(query).sort("date", -1))
     
+    # Remove duplicates by checking title and content
+    seen_titles = set()
+    unique_summaries = []
+    
+    for s in todays_summaries:
+        title = s.get("title", "").strip()
+        summary = s.get("summary", "").strip()
+        
+        # Create a unique key using title and first 100 chars of summary
+        unique_key = (title + summary[:100]) if title else summary[:100]
+        
+        if unique_key and unique_key not in seen_titles:
+            seen_titles.add(unique_key)
+            unique_summaries.append(s)
+    
     return [
         {
             "_id": str(s.get("_id")),
@@ -495,7 +663,7 @@ async def get_todays_summaries():
             "sources": s.get("sources", []),
             "urlToImage": s.get("urlToImage", "")  # Include the image URL in the response
         }
-        for s in todays_summaries
+        for s in unique_summaries
     ]
 
 @router.get("/auth/me", response_model=UserResponse)
@@ -547,8 +715,12 @@ async def get_dashboard(current_user: dict = Depends(get_current_user)):
 @router.get("/users")
 async def get_users(limit: int = 100, current_user: dict = Depends(get_current_user)):
     """Return a list of users for discovery"""
-    users = get_all_users(limit=limit)
-    return {"users": users}
+    users_data = get_all_users(current_user["user_id"], limit=limit)
+    if users_data["success"] and "users" in users_data:
+        return {"users": users_data["users"]}
+    else:
+        # Return empty array instead of None or invalid data
+        return {"users": []}
 
 @router.get("/user/{user_id}/profile")
 async def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user)):
@@ -558,6 +730,32 @@ async def get_user_profile(user_id: str, current_user: dict = Depends(get_curren
         raise HTTPException(status_code=404, detail="User not found")
     stats = get_user_stats(user_id)
     return {"user": {"user_id": user_id, "email": user["email"], "points": stats.get("points", 0) if stats else 0, "is_self": user_id == current_user["user_id"]}}
+
+@router.get("/user/{user_id}/followers")
+async def get_user_followers(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Return followers of a user"""
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    followers_data = get_user_followers(user_id)
+    if followers_data["success"]:
+        return followers_data
+    else:
+        raise HTTPException(status_code=500, detail=followers_data.get("error", "Failed to fetch followers"))
+
+@router.get("/user/{user_id}/following")
+async def get_user_following(user_id: str, current_user: dict = Depends(get_current_user)):
+    """Return users that this user is following"""
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    following_data = get_user_following(user_id)
+    if following_data["success"]:
+        return following_data
+    else:
+        raise HTTPException(status_code=500, detail=following_data.get("error", "Failed to fetch following"))
 
 @router.post("/follow/{target_user_id}")
 async def follow(target_user_id: str, current_user: dict = Depends(get_current_user)):

@@ -13,9 +13,10 @@ interface Message {
 interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, isMobile = false }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -170,8 +171,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
             </button>
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center font-bold text-xl">
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-6 flex items-center space-x-4 shadow-lg">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center font-bold text-xl shadow-inner">
                 N
               </div>
               <div>
@@ -181,7 +182,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Scrollable Messages Container */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-900/50 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-900/50 custom-scrollbar backdrop-blur-sm bg-gradient-to-b from-slate-900/50 to-slate-800/50">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -191,12 +192,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
                   className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[75%] px-5 py-3 rounded-2xl ${
+                    className={`max-w-[75%] px-5 py-3 rounded-2xl shadow-lg ${
                       message.sender === 'user'
-                        ? 'bg-blue-600 text-white shadow-lg'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white'
                         : message.isError
-                        ? 'bg-red-800/80 text-red-200 border border-red-600/50'
-                        : 'bg-slate-700/80 text-slate-200 border border-slate-600/50'
+                        ? 'bg-gradient-to-r from-red-800/80 to-red-700/80 text-red-100 border border-red-600/50'
+                        : 'bg-gradient-to-r from-slate-700/90 to-slate-800/90 text-slate-100 border border-slate-600/30 backdrop-blur-sm'
                     }`}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
@@ -244,21 +245,35 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose }) => {
             )}
 
             {/* Input Section */}
-            <div className="p-6 border-t border-slate-700/50 bg-slate-800/50">
-              <div className="flex space-x-3">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask me about your reading habits, news topics, or anything else..."
-                  className="flex-1 px-4 py-3 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700/50 text-slate-100 placeholder-slate-400 text-sm transition-all duration-200"
-                  disabled={isLoading}
-                />
+            <div className="p-6 border-t border-slate-700/50 bg-gradient-to-r from-slate-800 to-blue-900/50">
+              <div className="flex space-x-3 items-center">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => {
+                      e.stopPropagation(); // Prevent event bubbling
+                      setInputMessage(e.target.value);
+                    }}
+                    onKeyPress={(e) => {
+                      e.stopPropagation(); // Prevent event bubbling
+                      handleKeyPress(e);
+                    }}
+                    onClick={(e) => e.stopPropagation()} // Prevent modal from closing when clicking input
+                    placeholder="Ask me about your reading habits, news topics, or anything else..."
+                    className="w-full px-5 py-4 border border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-slate-700/50 text-slate-100 placeholder-slate-400 shadow-inner transition-all duration-200"
+                    disabled={isLoading}
+                  />
+                  {/* Glow effect for input */}
+                  <div className="absolute inset-0 rounded-xl bg-blue-500/20 filter blur-md -z-10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300"></div>
+                </div>
                 <button
-                  onClick={sendMessage}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent event bubbling
+                    sendMessage();
+                  }}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                  className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-600 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-800 shadow-lg hover:shadow-blue-500/30 transform hover:scale-105 active:scale-95"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

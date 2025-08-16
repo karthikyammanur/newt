@@ -7,6 +7,15 @@ from bson import ObjectId
 from typing import Optional, Dict, List
 from collections import defaultdict, Counter
 import statistics
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("mongodb")
 
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/newt")
@@ -51,33 +60,54 @@ def get_mongo_client():
 # User Management Functions
 def create_user(email: str, hashed_password: str) -> Dict:
     """Create a new user in MongoDB"""
-    user_doc = {
-        "user_id": str(ObjectId()),
-        "email": email,
-        "hashed_password": hashed_password,
-        "points": 0,
-        "summaries_read": [],
-        "daily_read_log": {},
-        "streak": {
-            "current": 0,
-            "max": 0,
-            "last_read_date": None
-        },
-        "followers": [],
-        "following": [],
-        "created_at": datetime.now(pytz.UTC),
-        "updated_at": datetime.now(pytz.UTC)
-    }
-    result = users_collection.insert_one(user_doc)
-    user_doc["_id"] = str(result.inserted_id)
-    return user_doc
+    try:
+        # Check for duplicate users first
+        if get_user_by_email(email):
+            logger.warning(f"Attempted to create duplicate user: {email}")
+            return None
+            
+        user_doc = {
+            "user_id": str(ObjectId()),
+            "email": email,
+            "hashed_password": hashed_password,
+            "points": 0,
+            "summaries_read": [],
+            "daily_read_log": {},
+            "streak": {
+                "current": 0,
+                "max": 0,
+                "last_read_date": None
+            },
+            "followers": [],
+            "following": [],
+            "created_at": datetime.now(pytz.UTC),
+            "updated_at": datetime.now(pytz.UTC)
+        }
+        
+        logger.info(f"Creating new user: {email}")
+        result = users_collection.insert_one(user_doc)
+        user_doc["_id"] = str(result.inserted_id)
+        logger.info(f"User created successfully: {email} (ID: {user_doc['user_id']})")
+        
+        return user_doc
+    except Exception as e:
+        logger.error(f"Error creating user {email}: {str(e)}")
+        return None
 
 def get_user_by_email(email: str) -> Optional[Dict]:
     """Get user by email"""
-    user = users_collection.find_one({"email": email})
-    if user:
-        user["_id"] = str(user["_id"])
-    return user
+    try:
+        logger.debug(f"Looking up user by email: {email}")
+        user = users_collection.find_one({"email": email})
+        if user:
+            user["_id"] = str(user["_id"])
+            logger.debug(f"User found: {email}")
+            return user
+        logger.debug(f"User not found: {email}")
+        return None
+    except Exception as e:
+        logger.error(f"Error looking up user by email {email}: {str(e)}")
+        return None
 
 def get_user_by_id(user_id: str) -> Optional[Dict]:
     """Get user by user_id"""

@@ -507,44 +507,7 @@ const Dashboard = () => {
               )}
             </div>
           )}
-            {/* Invite Friends Card */}
-          <div className="mt-8 bg-gray-900 rounded-lg shadow-sm p-6 border border-gray-700 relative overflow-hidden">
-            {/* Background decoration */}
-            <div className="absolute -right-12 -top-12 w-40 h-40 bg-blue-500 opacity-10 rounded-full"></div>
-            <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-purple-500 opacity-10 rounded-full"></div>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-between relative z-10">
-              <div>
-                <h2 className="text-lg font-semibold text-blue-100 mb-1">👥 Invite Friends to newt</h2>
-                <p className="text-blue-300 text-sm mb-4 sm:mb-0">
-                  Share the joy of efficient reading with your friends and colleagues.
-                </p>
-              </div>
-              <div>                <button
-                  onClick={() => {
-                    const inviteLink = "https://newtreader.com/join?ref=" + analytics.user_id;
-                    navigator.clipboard.writeText(inviteLink);
-                    // Show feedback instead of alert
-                    const button = document.getElementById('invite-button');
-                    const originalText = button.innerHTML;
-                    button.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>Link Copied!';
-                    button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    button.classList.add('bg-green-600');
-                    setTimeout(() => {
-                      button.innerHTML = originalText;
-                      button.classList.remove('bg-green-600');
-                      button.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    }, 2000);
-                  }}
-                  id="invite-button"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg"
-                >                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>                  Copy Invitation Link
-                </button>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </Layout>

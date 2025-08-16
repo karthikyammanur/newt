@@ -112,53 +112,7 @@ const AboutPage = () => {
         </motion.div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2 
-            className="text-3xl font-bold mb-12 text-white"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            Meet Our Team
-          </motion.h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Alex Johnson",
-                role: "Founder & CEO",
-                bio: "Former news editor with a passion for making information accessible."
-              },
-              {
-                name: "Priya Sharma",
-                role: "CTO",
-                bio: "AI researcher specializing in natural language processing and summarization."
-              },
-              {
-                name: "Marcus Chen",
-                role: "Head of Product",
-                bio: "Product designer focused on creating engaging learning experiences."
-              }
-            ].map((member, index) => (
-              <motion.div 
-                key={index}
-                className="bg-gray-800/30 p-6 rounded-xl"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 mx-auto mb-4"></div>
-                <h3 className="text-xl font-semibold text-white">{member.name}</h3>
-                <p className="text-blue-300 mb-2">{member.role}</p>
-                <p className="text-sm text-blue-100">{member.bio}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+
     </PublicLayout>
   );
 };

@@ -31,13 +31,22 @@ const FollowersPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setFollowers(data.followers);
-        setError(null);
+        // Check if data contains the followers array
+        if (data && data.followers && Array.isArray(data.followers)) {
+          setFollowers(data.followers);
+          setError(null);
+        } else {
+          // Handle empty or malformed response
+          console.warn("API returned invalid followers data format:", data);
+          setFollowers([]);
+          setError("No followers found or invalid data format");
+        }
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ detail: `HTTP error: ${response.status}` }));
         setError(errorData.detail || 'Failed to fetch followers');
       }
     } catch (error) {
+      console.error("Error fetching followers:", error);
       setError('Network error: ' + error.message);
     } finally {
       setLoading(false);

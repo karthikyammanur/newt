@@ -3,11 +3,17 @@ import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import AccordionSummaryCard from '../components/AccordionSummaryCard';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../context/AuthContext';
 
 const TodayPage = () => {
   const [summaries, setSummaries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);  useEffect(() => {
+  const [error, setError] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationResult, setGenerationResult] = useState(null);
+  const { token } = useAuth();
+  
+  useEffect(() => {
     const fetchTodaysSummaries = async () => {
       setIsLoading(true);
       setError(null);
@@ -33,7 +39,48 @@ const TodayPage = () => {
     };
 
     fetchTodaysSummaries();
-  }, []);  return (
+  }, []);
+  
+  const handleGenerateSummaries = async () => {
+    if (isGenerating) return;
+    
+    setIsGenerating(true);
+    setGenerationResult(null);
+    
+    try {
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/summaries/generate`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      setGenerationResult(result);
+      
+      if (result.success) {
+        // Refresh the summaries list
+        const refreshResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/summaries/today`);
+        if (refreshResponse.ok) {
+          const data = await refreshResponse.json();
+          const summariesArray = Array.isArray(data) ? data : [];
+          setSummaries(summariesArray);
+        }
+      }
+    } catch (err) {
+      console.error('Error generating summaries:', err);
+      setGenerationResult({
+        success: false,
+        message: `Error: ${err.message}`
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  return (
     <Layout>
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -53,6 +100,58 @@ const TodayPage = () => {
                 <p className="text-slate-300 text-xl max-w-2xl mx-auto leading-relaxed">
                   Fresh summaries updated daily with the latest technology news and insights
                 </p>
+                
+                {/* Manual generation button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="mt-6"
+                >
+                  <button
+                    onClick={handleGenerateSummaries}
+                    disabled={isGenerating}
+                    className={`
+                      inline-flex items-center px-4 py-2 rounded-full 
+                      transition-all duration-200 shadow-lg focus:outline-none
+                      ${isGenerating 
+                        ? 'bg-slate-700 text-slate-300 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 hover:shadow-indigo-500/30'}
+                    `}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Generate New Summaries
+                      </>
+                    )}
+                  </button>
+                </motion.div>
+                
+                {/* Generation result message */}
+                {generationResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`mt-3 text-sm px-4 py-2 rounded-full inline-block ${
+                      generationResult.success 
+                        ? 'bg-green-900/50 text-green-300 border border-green-700/50' 
+                        : 'bg-red-900/50 text-red-300 border border-red-700/50'
+                    }`}
+                  >
+                    {generationResult.message}
+                  </motion.div>
+                )}
                 
                 {/* Stats bar */}
                 {summaries?.length > 0 && (

@@ -31,13 +31,22 @@ const FollowingPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setFollowing(data.following);
-        setError(null);
+        // Check if data contains the following array
+        if (data && data.following && Array.isArray(data.following)) {
+          setFollowing(data.following);
+          setError(null);
+        } else {
+          // Handle empty or malformed response
+          console.warn("API returned invalid following data format:", data);
+          setFollowing([]);
+          setError("No following data found or invalid data format");
+        }
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ detail: `HTTP error: ${response.status}` }));
         setError(errorData.detail || 'Failed to fetch following list');
       }
     } catch (error) {
+      console.error("Error fetching following:", error);
       setError('Network error: ' + error.message);
     } finally {
       setLoading(false);

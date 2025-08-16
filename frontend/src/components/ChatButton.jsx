@@ -29,14 +29,14 @@ const ChatButton = () => {
         onClick={toggleModal}
         className={`
           fixed z-50
-          ${isMobile ? 'bottom-4 right-4 w-12 h-12' : 'bottom-6 right-6 w-14 h-14'}
-          bg-gradient-to-r from-blue-600 to-blue-700 
-          hover:from-blue-500 hover:to-blue-600
+          ${isMobile ? 'bottom-4 right-4 w-14 h-14' : 'bottom-6 right-6 w-16 h-16'}
+          bg-gradient-to-r from-blue-600 to-indigo-700 
+          hover:from-blue-500 hover:to-indigo-600
           text-white rounded-full 
           shadow-lg hover:shadow-xl hover:shadow-blue-500/25
           transition-all duration-300 ease-in-out
           focus:outline-none focus:ring-4 focus:ring-blue-500/50
-          group
+          group flex items-center justify-center
           ${isModalOpen ? 'rotate-45' : 'rotate-0'}
         `}
         whileHover={{ 

@@ -1,39 +1,21 @@
 from datetime import datetime, timedelta
 from typing import Optional
-# Temporarily disabled: from jose import JWTError, jwt
-# Temporarily disabled: from passlib.context import CryptContext
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
+import logging
 
-# Temporary mock classes for JWT functionality
-class JWTError(Exception):
-    pass
-
-class CryptContext:
-    def __init__(self, schemes=None, deprecated=None):
-        pass
-    
-    def verify(self, password, hashed):
-        return password == "password123"  # Temporary simple auth
-    
-    def hash(self, password):
-        return f"hashed_{password}"
-
-# Temporary JWT mock functions
-class jwt:
-    @staticmethod
-    def encode(data, key, algorithm):
-        return f"mock_token_{data.get('sub', 'user')}"
-    
-    @staticmethod
-    def decode(token, key, algorithms):
-        if token.startswith("mock_token_"):
-            username = token.replace("mock_token_", "")
-            return {"sub": username}
-        raise JWTError("Invalid token")
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("auth")
 
 load_dotenv()
 
@@ -72,10 +54,23 @@ class UserInDB(BaseModel):
     hashed_password: str
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password using the pwd_context."""
+    try:
+        logger.debug(f"Verifying password (hashed: {hashed_password[:10]}...)")
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception as e:
+        logger.error(f"Password verification error: {str(e)}")
+        return False
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash password using the pwd_context."""
+    try:
+        hashed = pwd_context.hash(password)
+        logger.debug(f"Password hashed successfully (hashed: {hashed[:10]}...)")
+        return hashed
+    except Exception as e:
+        logger.error(f"Password hashing error: {str(e)}")
+        raise
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()

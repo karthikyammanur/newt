@@ -29,13 +29,20 @@ const DiscoverUsersPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.users);
-        setError(null);
+        if (data.users && Array.isArray(data.users)) {
+          setUsers(data.users);
+        } else {
+          // Handle empty or invalid user array
+          console.warn("API returned invalid user data format:", data);
+          setUsers([]);
+          setError("No users found or invalid data format");
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.detail || 'Failed to fetch users');
       }
     } catch (error) {
+      console.error("Error fetching users:", error);
       setError('Network error: ' + error.message);
     } finally {
       setLoading(false);
@@ -182,6 +189,35 @@ const DiscoverUsersPage = () => {
               <p className="text-blue-300">
                 {searchTerm ? 'Try adjusting your search terms.' : 'No users to discover right now.'}
               </p>
+              <button 
+                onClick={fetchUsers}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Refresh Users
+              </button>
+              {/* Fallback User Card - Always show this if no users are found */}
+              <div className="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700 max-w-md mx-auto">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-xl font-bold text-white mb-4">
+                    T
+                  </div>
+                  <h3 className="text-lg font-semibold text-blue-100 mb-1">
+                    TestUser
+                  </h3>
+                  <p className="text-blue-400 text-sm mb-4">testuser@example.com</p>
+                  <div className="grid grid-cols-2 gap-4 w-full mb-4">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-400">42</div>
+                      <div className="text-xs text-blue-300">Points</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-purple-400">15</div>
+                      <div className="text-xs text-blue-300">Articles</div>
+                    </div>
+                  </div>
+                  <p className="text-blue-400 text-xs mt-2">Example User Card</p>
+                </div>
+              </div>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

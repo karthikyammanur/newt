@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const ChatAgent = ({ onClose }) => {
@@ -14,15 +14,27 @@ const ChatAgent = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const { user, token } = useAuth();
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
+  
+  // Focus the input field when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleInputChange = useCallback((e) => {
+    setInputMessage(e.target.value);
+  }, []);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -84,12 +96,12 @@ const ChatAgent = ({ onClose }) => {
     }
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
-  };
+  }, [inputMessage, isLoading]); // Dependencies for sendMessage
 
   const formatTime = (timestamp) => {
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -174,9 +186,10 @@ const ChatAgent = ({ onClose }) => {
       <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="flex space-x-2">
           <input
+            ref={inputRef}
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             placeholder="Ask me about your reading habits..."
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"

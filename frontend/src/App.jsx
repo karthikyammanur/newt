@@ -10,13 +10,13 @@ import { initScrollbarCompensation } from './utils/scrollLockUtils';
 import LandingPage from './pages/LandingPage';
 import FeaturesPage from './pages/FeaturesPage';
 import AboutPage from './pages/AboutPage';
-import FaqPage from './pages/FaqPage';
-import JoinPage from './pages/JoinPage';
+import ComingSoon from './pages/public/ComingSoon';
 
 // Protected Pages
-import SummariesPage from './pages/SummariesPage';
+impo
+rt SummariesPage from './pages/SummariesPage';
 import TodayPage from './pages/TodayPage';
-import ReelsPage from './pages/ReelsPage';
+
 import PastSummariesPage from './pages/PastSummariesPage';
 import PastSummariesTopicPage from './pages/PastSummariesTopicPage';
 import Dashboard from './pages/Dashboard';
@@ -53,8 +53,14 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/features" element={<FeaturesPage />} />
-              <Route path="/about" element={<AboutPage />} />              <Route path="/faq" element={<FaqPage />} />
-              <Route path="/join" element={<JoinPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/coming-soon" element={<ComingSoon />} />
+              
+              {/* Auth redirects to coming soon */}
+              <Route path="/join" element={<Navigate to="/coming-soon" replace />} />
+              <Route path="/login" element={<Navigate to="/coming-soon" replace />} />
+              <Route path="/register" element={<Navigate to="/coming-soon" replace />} />
+              <Route path="/auth/*" element={<Navigate to="/coming-soon" replace />} />
               
               {/* Protected Routes - Require Authentication */}
               <Route path="/summaries" element={
@@ -66,11 +72,7 @@ function App() {
                   <TodayPage />
                 </ProtectedRoute>
               } />
-              <Route path="/reels" element={
-                <ProtectedRoute>
-                  <ReelsPage />
-                </ProtectedRoute>
-              } />
+
               <Route path="/past-summaries" element={
                 <ProtectedRoute>
                   <PastSummariesPage />
@@ -112,8 +114,8 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* Redirect /auth to /join for consistency */}
-              <Route path="/auth" element={<Navigate to="/join" replace />} />
+              {/* Redirect /auth to /coming-soon for consistency */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AnimatePresence>
         </Router>

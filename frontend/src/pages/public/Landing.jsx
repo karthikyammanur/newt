@@ -1,13 +1,13 @@
 import React from 'react';
-import PublicLayout from '../components/PublicLayout';
-import Hero from '../components/public/Hero';
-import FeatureRow from '../components/public/FeatureRow';
-import FeatureGallery from '../components/public/FeatureGallery';
-import AgentPreview from '../components/public/AgentPreview';
-import NarrativeSteps from '../components/public/NarrativeSteps';
-import FinalCTA from '../components/public/FinalCTA';
+import PublicLayout from '../../components/PublicLayout';
+import Hero from '../../components/public/Hero';
+import FeatureRow from '../../components/public/FeatureRow';
+import FeatureGallery from '../../components/public/FeatureGallery';
+import AgentPreview from '../../components/public/AgentPreview';
+import NarrativeSteps from '../../components/public/NarrativeSteps';
+import FinalCTA from '../../components/public/FinalCTA';
 
-const LandingPage = () => {
+const Landing = () => {
   return (
     <PublicLayout>
       <div className="min-h-screen">
@@ -45,4 +45,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default Landing;

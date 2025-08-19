@@ -4,11 +4,40 @@ import { Link } from 'react-router-dom';
 
 const ComingSoon = () => {
   const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleNotifyClick = () => {
-    // This is just a stub - no backend implementation needed
-    alert('Thanks! We\'ll notify you when we launch.');
-    setEmail('');
+  const handleWaitlistClick = async () => {
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:5001/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setIsSubmitted(true);
+        setEmail('');
+      } else {
+        const data = await response.json();
+        setError(data.message || 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      setError('Failed to join waitlist. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -42,7 +71,7 @@ const ComingSoon = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          We're almost ready.
+          Coming Soon
         </motion.h1>
         
         <motion.p 
@@ -51,33 +80,44 @@ const ComingSoon = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          Newt is in active testing and launching soon.
+          Join the waitlist to be the first to know when Newt launches and get early access to personalized tech news summaries.
         </motion.p>
 
-        {/* Email Notification */}
+        {/* Email Waitlist */}
         <motion.div 
           className="mb-8"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-full bg-gray-800/50 backdrop-blur-sm border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled
-            />
-            <button
-              onClick={handleNotifyClick}
-              disabled
-              className="px-6 py-3 bg-gray-600 text-gray-400 rounded-full font-medium cursor-not-allowed"
-            >
-              Notify me
-            </button>
-          </div>
+          {isSubmitted ? (
+            <div className="text-center">
+              <div className="text-green-400 text-xl font-semibold mb-2">🎉 You're on the list!</div>
+              <p className="text-blue-100">We'll notify you as soon as Newt is ready.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="flex-1 px-4 py-3 rounded-full bg-gray-800/50 backdrop-blur-sm border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isSubmitting}
+                onKeyPress={(e) => e.key === 'Enter' && handleWaitlistClick()}
+              />
+              <button
+                onClick={handleWaitlistClick}
+                disabled={isSubmitting || !email}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-full font-medium transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
+              >
+                {isSubmitting ? 'Joining...' : 'Join Waitlist'}
+              </button>
+            </div>
+          )}
+          {error && (
+            <p className="text-red-400 text-sm mt-2">{error}</p>
+          )}
         </motion.div>
 
         <motion.p 
@@ -86,7 +126,7 @@ const ComingSoon = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          Follow our updates and check back shortly.
+          Be among the first to experience AI-powered tech news summaries tailored just for you.
         </motion.p>
 
         {/* Back to Home Link */}
